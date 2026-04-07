@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prominence Bank - Email & PDF Template Preview</title>
+    <style>
+        body {
+            margin: 0;
+            background: #f3f4f6;
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            padding: 20px;
+            color: #111827;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .preview-header {
+            background: linear-gradient(135deg, #0a192f 0%, #1e293b 100%);
+            color: white;
+            padding: 24px;
+            border-radius: 8px 8px 0 0;
+            margin-bottom: 20px;
+        }
+        .preview-header h1 {
+            margin: 0 0 8px 0;
+            font-size: 24px;
+        }
+        .preview-header p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        .email-wrapper {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .email-header {
+            background: #0a192f;
+            color: #fff;
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            flex-wrap: nowrap;
+        }
+        .email-header-left {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+        .email-header-brand {
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 0.045em;
+            margin-bottom: 6px;
+        }
+        .email-header-email {
+            font-size: 13px;
+            opacity: 0.92;
+            margin-bottom: 6px;
+        }
+        .email-header-subtitle {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-top: 6px;
+        }
+        .email-header-right {
+            text-align: right;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            justify-content: flex-start;
+            gap: 4px;
+        }
+        .app-id {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-bottom: 0;
+        }
+        .logo {
+            max-height: 80px;
+            object-fit: contain;
+            border-radius: 4px;
+            margin-top: 0;
+        }
+        .email-content {
+            padding: 16px;
+        }
+        .title {
+            font-weight: 700;
+            font-size: 24px;
+            color: #111827;
+            margin: 0 0 12px 0;
+        }
+        .meta {
+            color: #374151;
+            margin: 0 0 14px 0;
+            font-size: 16px;
+        }
+        .meta strong {
+            font-weight: 600;
+        }
+        .info-badges {
+            margin-bottom: 18px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .badge {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 15px;
+        }
+        .section-title {
+            font-weight: 700;
+            color: #111827;
+            font-size: 16px;
+            margin-bottom: 12px;
+            margin-top: 16px;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 18px;
+        }
+        .data-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #2d3748;
+            border: 1px solid #e5e7eb;
+            padding: 14px;
+            text-align: left;
+            font-size: 15px;
+        }
+        .data-table td {
+            border: 1px solid #e5e7eb;
+            padding: 14px;
+            font-size: 15px;
+            color: #111827;
+        }
+        .data-table tr:nth-child(even) {
+            background: #f8fafc;
+        }
+        .documents-list {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 14px;
+            margin-bottom: 18px;
+        }
+        .documents-list h3 {
+            margin: 0 0 10px 0;
+            font-size: 15px;
+            font-weight: 600;
+        }
+        .documents-list ul {
+            margin: 0;
+            padding-left: 20px;
+            list-style-type: disc;
+        }
+        .documents-list li {
+            margin-bottom: 6px;
+            color: #111827;
+            font-size: 15px;
+        }
+        .documents-list a {
+            color: #2563eb;
+            text-decoration: none;
+        }
+        .documents-list a:hover {
+            text-decoration: underline;
+        }
+        .policy-block {
+            background: #fefce8;
+            border: 1px solid #fde047;
+            border-radius: 8px;
+            padding: 18px;
+            margin-top: 18px;
+            font-size: 15px;
+            color: #111827;
+            line-height: 1.6;
+        }
+        .policy-block h3 {
+            margin: 0 0 14px 0;
+            font-size: 16px;
+            font-weight: 700;
+        }
+        .policy-block p {
+            margin: 10px 0;
+        }
+        .policy-block ul {
+            margin: 10px 0 10px 20px;
+            padding: 0;
+        }
+        .footer-text {
+            font-size: 14px;
+            color: #6b7280;
+            margin-top: 14px;
+        }
+        .footer-text a {
+            color: #2563eb;
+            text-decoration: none;
+        }
+        .subject-box {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 16px;
+            font-size: 13px;
+        }
+        .subject-label {
+            font-weight: 600;
+            color: #0369a1;
+            margin-bottom: 4px;
+        }
+        .subject-value {
+            color: #0c4a6e;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="preview-header">
+            <h1>Email & PDF Template Preview</h1>
+            <p>This is how the email template and PDF output will look for applicants and admin</p>
+        </div>
+
+        <!-- EMAIL 1: ADMIN -->
+        <div style="margin-bottom: 40px;">
+            <h2 style="color: #0a192f; margin-top: 20px; margin-bottom: 8px;">📧 Admin Email</h2>
+            <div class="subject-box">
+                <div class="subject-label">📨 Subject Line:</div>
+                <div class="subject-value">New Application #App-102554554 - Personal Account</div>
+                <div style="font-size: 14px; color: #0c4a6e; margin-top: 8px;">
+                    <strong>To:</strong> helpdesk@prominencebank.com
+                </div>
+                <div style="font-size: 14px; color: #0c4a6e; margin-top: 4px;">
+                    <strong>From:</strong> Prominence Bank Corp. &lt;account@prominencebank.com&gt;
+                </div>
+            </div>
+            <div class="email-wrapper">
+                <div style="background:#d32f2f;color:#fff;padding:12px 16px;border-bottom:2px solid #b71c1c;font-weight:700;font-size:14px;letter-spacing:0.045em;">🔔 ADMIN NOTIFICATION</div>
+                <div class="email-header">
+                    <div class="email-header-left">
+                        <div class="email-header-brand">PROMINENCE BANK CORP.</div>
+                        <div class="email-header-email">account@prominencebank.com</div>
+                        <div class="email-header-subtitle">Application ID: App-102554554 | Personal Account</div>
+                    </div>
+                    <div class="email-header-right">
+                        <img src="https://via.placeholder.com/72x72?text=Logo" alt="Prominence Bank" class="logo">
+                    </div>
+                </div>
+                <div class="email-content">
+                    <h2 class="title">Prominence Bank Application Submission</h2>
+                    <div class="meta">Application ID: <strong>App-102554554</strong></div>
+                    
+                    <div class="info-badges">
+                        <div class="badge">Type: <strong>Personal</strong></div>
+                        <div class="badge">Submitted: <strong>2026-03-21 14:32:00</strong></div>
+                    </div>
+
+                    <div class="section-title">Application Details</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Full Name</td>
+                                <td>Jane Sample Johnson</td>
+                            </tr>
+                            <tr>
+                                <td>Email Address</td>
+                                <td>jane.johnson@example.com</td>
+                            </tr>
+                            <tr>
+                                <td>Date of Birth</td>
+                                <td>January 15, 1990</td>
+                            </tr>
+                            <tr>
+                                <td>Passport ID Number</td>
+                                <td>B987654321</td>
+                            </tr>
+                            <tr>
+                                <td>Country</td>
+                                <td>United States</td>
+                            </tr>
+                            <tr>
+                                <td>Mobile Number</td>
+                                <td>+1-555-987-6543</td>
+                            </tr>
+                            <tr>
+                                <td>Account Currency</td>
+                                <td>USD</td>
+                            </tr>
+                            <tr>
+                                <td>Account Type</td>
+                                <td>Savings Account</td>
+                            </tr>
+                            <tr>
+                                <td>Initial Funding Value</td>
+                                <td>$250,000</td>
+                            </tr>
+                            <tr>
+                                <td>Payment Method</td>
+                                <td>SWIFT International Wire</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="section-title">KYC/AML DOCUMENTATION NOTE</div>
+                    <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:12px;margin-bottom:16px;font-size:13px;line-height:1.5;">
+                        <p style="margin:0 0 8px 0;"><strong>Click to expand / view terms</strong></p>
+                        <p style="margin:8px 0;">Please ensure all documents are clear and valid. PCM may assist with intake and document coordination and transmit the compiled package to Prominence Bank. Prominence Bank may request additional documentation or enhanced due diligence at any time. Incomplete or inconsistent information may delay processing or result in the application being declined.</p>
+                    </div>
+
+                    <div class="section-title">Passport Documentation</div>
+                    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:12px;margin-bottom:16px;">
+                        <p style="margin:0 0 8px 0;font-size:13px;"><strong>Insert Full Color Photo of your Passport Here *</strong></p>
+                        <div style="color:#666;font-size:12px;padding:8px;background:#fff;border:1px dashed #cbd5e1;border-radius:4px;text-align:center;">No file chosen</div>
+                    </div>
+
+                    <div class="section-title">ACCOUNT OPENING FEE — PAYMENT INSTRUCTIONS</div>
+                    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:12px;margin-bottom:16px;font-size:13px;line-height:1.6;">
+                        <p style="margin:0 0 8px 0;"><strong>Applicable to all new account types listed below.</strong></p>
+                        <p style="margin:8px 0;"><strong>Account Opening Fee (Onboarding &amp; Compliance Processing Fee)</strong></p>
+                        <p style="margin:8px 0;">Payment of the Account Opening Fee does not guarantee approval or account opening.</p>
+                        <ul style="margin:8px 0 8px 18px;padding:0;">
+                            <li>€25,000 – Euro Account</li>
+                            <li>$25,000 – USD Account</li>
+                            <li>€25,000 – Custody Account</li>
+                            <li>€25,000 – Cryptocurrency Account</li>
+                            <li>€50,000 – Numbered Account</li>
+                        </ul>
+                        <p style="margin:12px 0 8px 0;"><strong>REFUND POLICY (NO EXCEPTIONS)</strong></p>
+                        <p style="margin:8px 0;">If the application is declined and no account is opened, the Account Opening Fee will be refunded in full by PCM (no PCM deductions). Refunds are issued to the original sender (same payment route) within ten (10) business days after the application is formally declined in the Bank's records.</p>
+                        <p style="margin:8px 0;">If the application is approved and an account is opened, the Account Opening Fee is deemed fully earned upon account opening and is non-refundable.</p>
+                    </div>
+
+                    <div class="section-title">PAYMENT OPTION 1: INTERNATIONAL WIRE (SWIFT)</div>
+                    <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:12px;margin-bottom:16px;font-size:12px;line-height:1.5;">
+                        <p style="margin:0 0 8px 0;"><strong>EURO (€) CURRENCY</strong></p>
+                        <p style="margin:4px 0;"><strong>Bank Name:</strong> Wise Europe</p>
+                        <p style="margin:4px 0;"><strong>SWIFT Code:</strong> TRWIBEB1XXX</p>
+                        <p style="margin:4px 0;"><strong>Account Name:</strong> PROMINENCE CLIENT MANAGEMENT</p>
+                        <p style="margin:4px 0;"><strong>Account Number/IBAN:</strong> BE31905717979455</p>
+                        <p style="margin:8px 0 0 0;"><strong>Payment Reference (REQUIRED):</strong> Application ID: {{applicationId}} | Onboarding Fee</p>
+                    </div>
+
+                    <div class="section-title">PAYMENT OPTION 2: CRYPTOCURRENCY (USDT TRC20)</div>
+                    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:12px;margin-bottom:16px;font-size:12px;line-height:1.5;">
+                        <p style="margin:0 0 8px 0;"><strong>USDT Wallet Address (TRC20):</strong> <code style="background:#e5e7eb;padding:2px 4px;border-radius:3px;font-family:monospace;">TPYjSzK3BbZRZAVhBoRZcdyzKpQ9NN6S6Y</code></p>
+                        <p style="margin:8px 0;"><strong>⚠️ Important:</strong> The Account Opening Fee must be paid via SWIFT (Option 1) or USDT (Option 2). KTT/Telex are not accepted.</p>
+                    </div>
+
+                    <div class="section-title">THIRD-PARTY ONBOARDING NOTICE</div>
+                    <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:12px;margin-bottom:16px;font-size:12px;line-height:1.5;">
+                        <p style="margin:0 0 8px 0;">This application is supported by Prominence Client Management ("PCM"), providing administrative onboarding coordination only. PCM is not authorized to bind Prominence Bank or guarantee approval. PCM is not a bank and does not provide banking services.</p>
+                    </div>
+
+                    <div class="section-title">Uploaded Documents</div>
+                    <div class="documents-list">
+                        <h3>📎 Attached Files</h3>
+                        <ul>
+                            <li><a href="#">passport-scan.pdf</a></li>
+                            <li><a href="#">payment-proof.pdf</a></li>
+                            <li><a href="#">id-document.pdf</a></li>
+                        </ul>
+                    </div>
+
+                    <div class="policy-block">
+                        <h3>⚠️ AGREED AND ATTESTED</h3>
+                        <p style="margin: 10px 0;"><strong>Details of binding terms by executing this application:</strong></p>
+                        <p style="margin: 10px 0;">By signing and submitting this Personal Bank Account Application, the Applicant(s) acknowledge(s), confirm(s), attest(s), represent(s), warrant(s), and irrevocably agree(s) to the following:</p>
+                        
+                        <p style="margin: 14px 0 8px 0;"><strong>A. Mandatory Submission Requirements (Strict Compliance)</strong></p>
+                        <p style="margin: 8px 0;">The Applicant(s) understand(s), acknowledge(s), and accept(s) that the Bank shall automatically reject, without substantive review, processing, or response, any application submitted without all mandatory items required by the Bank, including, without limitation: Full Personal Bank Account opening fee • Valid proof of payment • All required documentation, disclosures, and supporting materials specified in the application form. The Applicant(s) further acknowledge(s) that repeated submission of incomplete, deficient, inaccurate, or non-compliant applications may result in permanent disqualification from reapplying.</p>
+                        
+                        <p style="margin: 14px 0 8px 0;"><strong>B. Payment Instructions (Opening Fee)</strong></p>
+                        <p style="margin: 8px 0;">Payments via KTT/TELEX are strictly prohibited. Accepted payment methods: SWIFT international wire transfer or cryptocurrency transfer to designated wallet. Application ID must be included in payment reference field exactly as instructed.</p>
+                        
+                        <p style="margin: 14px 0 8px 0;"><strong>C. Account Opening Requirements</strong></p>
+                        <p style="margin: 8px 0;">Minimum balance USD/EUR 5,000 must be maintained at all times. Ongoing adherence to Bank policies and compliance standards required. Bank may restrict services if balance falls below minimum.</p>
+                        
+                        <p style="margin: 14px 0 8px 0;"><strong>D. Finality of Account Type Selection (No Conversion After Opening)</strong></p>
+                        <p style="margin: 8px 0;">Account category selected is final and may not be amended, converted, substituted, reclassified, or modified after opening. To obtain different account type, submit new separate application with all required documentation.</p>
+                        
+                        <p style="margin: 14px 0 8px 0;"><strong>E. Transaction Profile and Ongoing Due Diligence</strong></p>
+                        <p style="margin: 8px 0;">Account activity must reasonably align with declared information (source of funds, countries involved, transaction volumes). Any material deviation may require additional verification and may be delayed, restricted, reviewed, or declined.</p>
+                        
+                        <p style="margin: 14px 0 8px 0;"><strong>F. Accuracy and Authorization</strong></p>
+                        <p style="margin: 8px 0;">All information provided is true, accurate, complete, current, and not misleading. Bank authorized to verify details, conduct credit/fraud/identity/sanctions checks, and request additional information at any time. Applicable costs may be charged to account.</p>
+                        
+                        <p style="margin: 14px 0 8px 0;"><strong>G. Account Retention, Record-Keeping, and Banking Relationship (ETMO Framework)</strong></p>
+                        <p style="margin: 8px 0;">Account retention governed exclusively by Bank's internal Administration, Compliance, Legal, Security, and Risk functions. Accounts not closed solely upon client request due to regulatory obligations, record-retention duties, and compliance commitments. Bank retains sole discretion to maintain account in administrative, dormant, or restricted status.</p>
+                        
+                        <p style="margin: 14px 0 8px 0;"><strong>H. Compliance and Regulatory Framework</strong></p>
+                        <p style="margin: 8px 0;">Bank operates under sovereign license within diplomatic regulatory framework. Full compliance with AML/KYC, sanctions, source-of-funds requirements mandatory. Bank applies internationally aligned standards and may apply monitoring, restrictions, enhanced due diligence as required.</p>
+                        
+                        <p style="margin: 14px 0 8px 0;"><strong>I. Data Processing and Privacy</strong></p>
+                        <p style="margin: 8px 0;">Personal data required for evaluating, processing, administering, and managing application. Bank authorized to collect, process, record, verify, analyze, transfer, and store data for present and future transactions and to satisfy legal, compliance, and operational obligations. Data may be processed by authorized service providers and affiliates.</p>
+                        
+                        <p style="margin: 14px 0 8px 0;"><strong>J. Additional Standard Banking Provisions (General)</strong></p>
+                        <p style="margin: 8px 0;">Bank may decline, delay, restrict, suspend, refuse, reverse, or not process any application, instruction, or transaction where required for compliance, security, risk management, incomplete information, or unsatisfactory due diligence. Bank not liable for third-party acts, delays, failures. All fees (Bank, intermediary, network, blockchain) may be debited. Bank's books and records constitute prima facie evidence of account activity. Applicant solely responsible for safeguarding credentials and access elements. Applicant must notify Bank immediately of suspected compromise or unauthorized use. Applicant must promptly report material changes in information (address, employment, beneficial ownership, source of funds, tax status). Account must not be used for unlawful, fraudulent, sanctionable, or prohibited purposes. Applicant indemnifies Bank from all losses arising from breach of terms, inaccurate information, prohibited use, or third-party claims. To maximum extent permitted, Bank not liable for indirect, consequential, or punitive damages. Bank not liable for delays arising from force majeure, cyberattacks, regulatory intervention, or events beyond reasonable control. Applicant waives right to assert claims based on misunderstanding or inadequate explanation. Any dispute addressed exclusively under Bank's institutional framework and diplomatic jurisdiction.</p>
+                    </div>
+
+                    <div class="footer-text">
+                        For support, contact <a href="mailto:support@prominencebank.com">support@prominencebank.com</a>.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- EMAIL 2: APPLICANT -->
+        <div style="margin-bottom: 40px;">
+            <h2 style="color: #0a192f; margin-top: 20px; margin-bottom: 8px;">📧 Applicant Email (Confirmation)</h2>
+            <div class="subject-box">
+                <div class="subject-label">📨 Subject Line:</div>
+                <div class="subject-value">New Application #App-102554554 - Personal Account</div>
+                <div style="font-size: 14px; color: #0c4a6e; margin-top: 8px;">
+                    <strong>To:</strong> jane.johnson@example.com
+                </div>
+                <div style="font-size: 14px; color: #0c4a6e; margin-top: 4px;">
+                    <strong>From:</strong> Prominence Bank Corp. &lt;account@prominencebank.com&gt;
+                </div>
+            </div>
+            <div class="email-wrapper">
+                <div style="background:#2e7d32;color:#fff;padding:12px 16px;border-bottom:2px solid #1b5e20;font-weight:700;font-size:14px;letter-spacing:0.045em;">✓ YOUR CONFIRMATION</div>
+                <div class="email-header">
+                    <div class="email-header-left">
+                        <div class="email-header-brand">PROMINENCE BANK CORP.</div>
+                        <div class="email-header-email">account@prominencebank.com</div>
+                        <div class="email-header-subtitle">Application ID: App-102554554 | Personal Account</div>
+                    </div>
+                    <div class="email-header-right">
+                        <img src="https://via.placeholder.com/72x72?text=Logo" alt="Prominence Bank" class="logo">
+                    </div>
+                </div>
+                <div class="email-content">
+                    <h2 class="title">Prominence Bank Application Submission</h2>
+                    <div class="meta">Application ID: <strong>App-102554554</strong></div>
+                    
+                    <div class="info-badges">
+                        <div class="badge">Type: <strong>Personal</strong></div>
+                        <div class="badge">Submitted: <strong>2026-03-21 14:32:00</strong></div>
+                    </div>
+
+                    <div class="section-title">Your Application Details</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Full Name</td>
+                                <td>Jane Sample Johnson</td>
+                            </tr>
+                            <tr>
+                                <td>Email Address</td>
+                                <td>jane.johnson@example.com</td>
+                            </tr>
+                            <tr>
+                                <td>Date of Birth</td>
+                                <td>January 15, 1990</td>
+                            </tr>
+                            <tr>
+                                <td>Passport ID Number</td>
+                                <td>B987654321</td>
+                            </tr>
+                            <tr>
+                                <td>Country</td>
+                                <td>United States</td>
+                            </tr>
+                            <tr>
+                                <td>Mobile Number</td>
+                                <td>+1-555-987-6543</td>
+                            </tr>
+                            <tr>
+                                <td>Account Currency</td>
+                                <td>USD</td>
+                            </tr>
+                            <tr>
+                                <td>Account Type</td>
+                                <td>Savings Account</td>
+                            </tr>
+                            <tr>
+                                <td>Initial Funding Value</td>
+                                <td>$250,000</td>
+                            </tr>
+                            <tr>
+                                <td>Payment Method</td>
+                                <td>SWIFT International Wire</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="section-title">KYC/AML DOCUMENTATION NOTE</div>
+                    <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:12px;margin-bottom:16px;font-size:13px;line-height:1.5;">
+                        <p style="margin:0 0 8px 0;"><strong>Click to expand / view terms</strong></p>
+                        <p style="margin:8px 0;">Please ensure all documents are clear and valid. PCM may assist with intake and document coordination and transmit the compiled package to Prominence Bank. Prominence Bank may request additional documentation or enhanced due diligence at any time. Incomplete or inconsistent information may delay processing or result in the application being declined.</p>
+                    </div>
+
+                    <div class="section-title">Passport Documentation</div>
+                    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:12px;margin-bottom:16px;">
+                        <p style="margin:0 0 8px 0;font-size:13px;"><strong>Insert Full Color Photo of your Passport Here *</strong></p>
+                        <div style="color:#666;font-size:12px;padding:8px;background:#fff;border:1px dashed #cbd5e1;border-radius:4px;text-align:center;">No file chosen</div>
+                    </div>
+
+                    <div class="section-title">ACCOUNT OPENING FEE — PAYMENT INSTRUCTIONS</div>
+                    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:12px;margin-bottom:16px;font-size:13px;line-height:1.6;">
+                        <p style="margin:0 0 8px 0;"><strong>Applicable to all new account types listed below.</strong></p>
+                        <p style="margin:8px 0;"><strong>Account Opening Fee (Onboarding &amp; Compliance Processing Fee)</strong></p>
+                        <p style="margin:8px 0;">Payment of the Account Opening Fee does not guarantee approval or account opening.</p>
+                        <ul style="margin:8px 0 8px 18px;padding:0;">
+                            <li>€25,000 – Euro Account</li>
+                            <li>$25,000 – USD Account</li>
+                            <li>€25,000 – Custody Account</li>
+                            <li>€25,000 – Cryptocurrency Account</li>
+                            <li>€50,000 – Numbered Account</li>
+                        </ul>
+                        <p style="margin:12px 0 8px 0;"><strong>REFUND POLICY (NO EXCEPTIONS)</strong></p>
+                        <p style="margin:8px 0;">If the application is declined and no account is opened, the Account Opening Fee will be refunded in full by PCM (no PCM deductions). Refunds are issued to the original sender (same payment route) within ten (10) business days after the application is formally declined in the Bank's records.</p>
+                        <p style="margin:8px 0;">If the application is approved and an account is opened, the Account Opening Fee is deemed fully earned upon account opening and is non-refundable.</p>
+                    </div>
+
+                    <div class="section-title">PAYMENT OPTION 1: INTERNATIONAL WIRE (SWIFT)</div>
+                    <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:12px;margin-bottom:16px;font-size:12px;line-height:1.5;">
+                        <p style="margin:0 0 8px 0;"><strong>EURO (€) CURRENCY</strong></p>
+                        <p style="margin:4px 0;"><strong>Bank Name:</strong> Wise Europe</p>
+                        <p style="margin:4px 0;"><strong>SWIFT Code:</strong> TRWIBEB1XXX</p>
+                        <p style="margin:4px 0;"><strong>Account Name:</strong> PROMINENCE CLIENT MANAGEMENT</p>
+                        <p style="margin:4px 0;"><strong>Account Number/IBAN:</strong> BE31905717979455</p>
+                        <p style="margin:8px 0 0 0;"><strong>Payment Reference (REQUIRED):</strong> Application ID: {{applicationId}} | Onboarding Fee</p>
+                    </div>
+
+                    <div class="section-title">PAYMENT OPTION 2: CRYPTOCURRENCY (USDT TRC20)</div>
+                    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:12px;margin-bottom:16px;font-size:12px;line-height:1.5;">
+                        <p style="margin:0 0 8px 0;"><strong>USDT Wallet Address (TRC20):</strong> <code style="background:#e5e7eb;padding:2px 4px;border-radius:3px;font-family:monospace;">TPYjSzK3BbZRZAVhBoRZcdyzKpQ9NN6S6Y</code></p>
+                        <p style="margin:8px 0;"><strong>⚠️ Important:</strong> The Account Opening Fee must be paid via SWIFT (Option 1) or USDT (Option 2). KTT/Telex are not accepted.</p>
+                    </div>
+
+                    <div class="section-title">THIRD-PARTY ONBOARDING NOTICE</div>
+                    <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:12px;margin-bottom:16px;font-size:12px;line-height:1.5;">
+                        <p style="margin:0 0 8px 0;">This application is supported by Prominence Client Management ("PCM"), providing administrative onboarding coordination only. PCM is not authorized to bind Prominence Bank or guarantee approval. PCM is not a bank and does not provide banking services.</p>
+                    </div>
+
+                    <div class="section-title">Your Signature</div>
+                    <div style="border:1px solid #e2e8f0;background:#f9fafb;border-radius:6px;padding:10px;margin-bottom:16px;">
+                        <img src="https://via.placeholder.com/240x80?text=Signature" alt="Signature" style="max-width:240px;height:auto;border:1px solid #cbd5e1;border-radius:5px;" />
+                    </div>
+
+                    <div class="section-title">Your Uploaded Documents</div>
+                    <div class="documents-list">
+                        <h3>📎 Files Submitted</h3>
+                        <ul>
+                            <li><a href="#">passport-scan.pdf</a></li>
+                            <li><a href="#">payment-proof.pdf</a></li>
+                            <li><a href="#">id-document.pdf</a></li>
+                        </ul>
+                    </div>
+
+                    <div class="policy-block">
+                        <h3>✅ Confirmation</h3>
+                        <p>Thank you for submitting your application to Prominence Bank. Your application has been received and is now being reviewed by our team.</p>
+                        <p><strong>Application Reference:</strong> App-102554554</p>
+                        <p>You will receive updates about your application status via this email address. Please keep your Application ID for reference in all future communications.</p>
+                    </div>
+
+                    <div class="footer-text">
+                        For support, contact <a href="mailto:support@prominencebank.com">support@prominencebank.com</a>.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PDF PREVIEW -->
+        <div>
+            <h2 style="color: #0a192f; margin-top: 20px; margin-bottom: 8px;">📄 Generated PDF Preview</h2>
+            <p style="color: #666; margin-bottom: 16px;">The PDF is generated with the same HTML template and styling. When downloaded, it contains all application data in a print-friendly format.</p>
+            <div class="email-wrapper">
+                <div style="background:#1a3a52;color:#fff;padding:12px 16px;border-bottom:2px solid #0d1f2d;font-weight:700;font-size:14px;letter-spacing:0.045em;">📄 APPLICATION DOCUMENT</div>
+                <div class="email-header">
+                    <div class="email-header-left">
+                        <div class="email-header-brand">PROMINENCE BANK CORP.</div>
+                        <div class="email-header-email">account@prominencebank.com</div>
+                        <div class="email-header-subtitle">Application ID: App-102554554 | Personal Account</div>
+                    </div>
+                    <div class="email-header-right">
+                        <img src="https://via.placeholder.com/72x72?text=Logo" alt="Prominence Bank" class="logo">
+                    </div>
+                </div>
+                <div class="email-content">
+                    <h2 class="title">Prominence Bank Application Submission</h2>
+                    <div class="meta">Application ID: <strong>App-102554554</strong></div>
+                    
+                    <div class="info-badges">
+                        <div class="badge">Type: <strong>Personal</strong></div>
+                        <div class="badge">Submitted: <strong>2026-03-21 14:32:00</strong></div>
+                    </div>
+
+                    <div class="section-title">Application Details</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Full Name</td>
+                                <td>Jane Sample Johnson</td>
+                            </tr>
+                            <tr>
+                                <td>Email Address</td>
+                                <td>jane.johnson@example.com</td>
+                            </tr>
+                            <tr>
+                                <td>Date of Birth</td>
+                                <td>January 15, 1990</td>
+                            </tr>
+                            <tr>
+                                <td>Passport ID Number</td>
+                                <td>B987654321</td>
+                            </tr>
+                            <tr>
+                                <td>Country</td>
+                                <td>United States</td>
+                            </tr>
+                            <tr>
+                                <td>Mobile Number</td>
+                                <td>+1-555-987-6543</td>
+                            </tr>
+                            <tr>
+                                <td>Account Currency</td>
+                                <td>USD</td>
+                            </tr>
+                            <tr>
+                                <td>Account Type</td>
+                                <td>Savings Account</td>
+                            </tr>
+                            <tr>
+                                <td>Initial Funding Value</td>
+                                <td>$250,000</td>
+                            </tr>
+                            <tr>
+                                <td>Payment Method</td>
+                                <td>SWIFT International Wire</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="section-title">KYC/AML DOCUMENTATION NOTE</div>
+                    <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:12px;margin-bottom:16px;font-size:13px;line-height:1.5;">
+                        <p style="margin:0 0 8px 0;"><strong>Click to expand / view terms</strong></p>
+                        <p style="margin:8px 0;">Please ensure all documents are clear and valid. PCM may assist with intake and document coordination and transmit the compiled package to Prominence Bank. Prominence Bank may request additional documentation or enhanced due diligence at any time. Incomplete or inconsistent information may delay processing or result in the application being declined.</p>
+                    </div>
+
+                    <div class="section-title">Passport Documentation</div>
+                    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:12px;margin-bottom:16px;">
+                        <p style="margin:0 0 8px 0;font-size:13px;"><strong>Insert Full Color Photo of your Passport Here *</strong></p>
+                        <div style="color:#666;font-size:12px;padding:8px;background:#fff;border:1px dashed #cbd5e1;border-radius:4px;text-align:center;">No file chosen</div>
+                    </div>
+
+                    <div class="section-title">ACCOUNT OPENING FEE — PAYMENT INSTRUCTIONS</div>
+                    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:12px;margin-bottom:16px;font-size:13px;line-height:1.6;">
+                        <p style="margin:0 0 8px 0;"><strong>Applicable to all new account types listed below.</strong></p>
+                        <p style="margin:8px 0;"><strong>Account Opening Fee (Onboarding &amp; Compliance Processing Fee)</strong></p>
+                        <p style="margin:8px 0;">Payment of the Account Opening Fee does not guarantee approval or account opening.</p>
+                        <ul style="margin:8px 0 8px 18px;padding:0;">
+                            <li>€25,000 – Euro Account</li>
+                            <li>$25,000 – USD Account</li>
+                            <li>€25,000 – Custody Account</li>
+                            <li>€25,000 – Cryptocurrency Account</li>
+                            <li>€50,000 – Numbered Account</li>
+                        </ul>
+                        <p style="margin:12px 0 8px 0;"><strong>REFUND POLICY (NO EXCEPTIONS)</strong></p>
+                        <p style="margin:8px 0;">If the application is declined and no account is opened, the Account Opening Fee will be refunded in full by PCM (no PCM deductions). Refunds are issued to the original sender (same payment route) within ten (10) business days after the application is formally declined in the Bank's records.</p>
+                        <p style="margin:8px 0;">If the application is approved and an account is opened, the Account Opening Fee is deemed fully earned upon account opening and is non-refundable.</p>
+                    </div>
+
+                    <div class="section-title">PAYMENT OPTION 1: INTERNATIONAL WIRE (SWIFT)</div>
+                    <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:12px;margin-bottom:16px;font-size:12px;line-height:1.5;">
+                        <p style="margin:0 0 8px 0;"><strong>EURO (€) CURRENCY</strong></p>
+                        <p style="margin:4px 0;"><strong>Bank Name:</strong> Wise Europe</p>
+                        <p style="margin:4px 0;"><strong>SWIFT Code:</strong> TRWIBEB1XXX</p>
+                        <p style="margin:4px 0;"><strong>Account Name:</strong> PROMINENCE CLIENT MANAGEMENT</p>
+                        <p style="margin:4px 0;"><strong>Account Number/IBAN:</strong> BE31905717979455</p>
+                        <p style="margin:8px 0 0 0;"><strong>Payment Reference (REQUIRED):</strong> Application ID: {{applicationId}} | Onboarding Fee</p>
+                    </div>
+
+                    <div class="section-title">PAYMENT OPTION 2: CRYPTOCURRENCY (USDT TRC20)</div>
+                    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:12px;margin-bottom:16px;font-size:12px;line-height:1.5;">
+                        <p style="margin:0 0 8px 0;"><strong>USDT Wallet Address (TRC20):</strong> <code style="background:#e5e7eb;padding:2px 4px;border-radius:3px;font-family:monospace;">TPYjSzK3BbZRZAVhBoRZcdyzKpQ9NN6S6Y</code></p>
+                        <p style="margin:8px 0;"><strong>⚠️ Important:</strong> The Account Opening Fee must be paid via SWIFT (Option 1) or USDT (Option 2). KTT/Telex are not accepted.</p>
+                    </div>
+
+                    <div class="section-title">THIRD-PARTY ONBOARDING NOTICE</div>
+                    <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:12px;margin-bottom:16px;font-size:12px;line-height:1.5;">
+                        <p style="margin:0 0 8px 0;">This application is supported by Prominence Client Management ("PCM"), providing administrative onboarding coordination only. PCM is not authorized to bind Prominence Bank or guarantee approval. PCM is not a bank and does not provide banking services.</p>
+                    </div>
+
+                    <div class="section-title">Applicant Signature</div>
+                    <div style="border:1px solid #e2e8f0;background:#f9fafb;border-radius:6px;padding:10px;margin-bottom:16px;">
+                        <img src="https://via.placeholder.com/240x80?text=Signature" alt="Signature" style="max-width:240px;height:auto;border:1px solid #cbd5e1;border-radius:5px;" />
+                    </div>
+
+                    <div class="section-title">Uploaded Documents</div>
+                    <div class="documents-list">
+                        <h3>📎 Attached Files</h3>
+                        <ul>
+                            <li><a href="#">passport-scan.pdf</a></li>
+                            <li><a href="#">payment-proof.pdf</a></li>
+                            <li><a href="#">id-document.pdf</a></li>
+                        </ul>
+                    </div>
+
+                    <div class="policy-block">
+                        <h3>⚠️ AGREED AND ATTESTED</h3>
+                        <p style="margin: 10px 0;"><strong>Details of binding terms by executing this application:</strong></p>
+                        <p style="margin: 10px 0;">By signing and submitting this Personal Bank Account Application, the Applicant(s) acknowledge(s), confirm(s), attest(s), represent(s), warrant(s), and irrevocably agree(s) to the following:</p>
+                        
+                        <p style="margin: 14px 0 8px 0;"><strong>A. Mandatory Submission Requirements (Strict Compliance)</strong></p>
+                        <p style="margin: 8px 0;">The Applicant(s) understand(s), acknowledge(s), and accept(s) that the Bank shall automatically reject, without substantive review, processing, or response, any application submitted without all mandatory items required by the Bank, including, without limitation: Full Personal Bank Account opening fee • Valid proof of payment • All required documentation, disclosures, and supporting materials specified in the application form. The Applicant(s) further acknowledge(s) that repeated submission of incomplete, deficient, inaccurate, or non-compliant applications may result in permanent disqualification from reapplying.</p>
+                        
+                        <p style="margin: 14px 0 8px 0;"><strong>B. Payment Instructions (Opening Fee)</strong></p>
+                        <p style="margin: 8px 0;">Payments via KTT/TELEX are strictly prohibited. Accepted payment methods: SWIFT international wire transfer or cryptocurrency transfer to designated wallet. Application ID must be included in payment reference field exactly as instructed.</p>
+                        
+                        <p style="margin: 14px 0 8px 0;"><strong>C. Account Opening Requirements</strong></p>
+                        <p style="margin: 8px 0;">Minimum balance USD/EUR 5,000 must be maintained at all times. Ongoing adherence to Bank policies and compliance standards required. Bank may restrict services if balance falls below minimum.</p>
+                        
+                        <p style="margin: 14px 0 8px 0;"><strong>D. Finality of Account Type Selection (No Conversion After Opening)</strong></p>
+                        <p style="margin: 8px 0;">Account category selected is final and may not be amended, converted, substituted, reclassified, or modified after opening. To obtain different account type, submit new separate application with all required documentation.</p>
+                        
+                        <p style="margin: 14px 0 8px 0;"><strong>E. Transaction Profile and Ongoing Due Diligence</strong></p>
+                        <p style="margin: 8px 0;">Account activity must reasonably align with declared information (source of funds, countries involved, transaction volumes). Any material deviation may require additional verification and may be delayed, restricted, reviewed, or declined.</p>
+                        
+                        <p style="margin: 14px 0 8px 0;"><strong>F. Accuracy and Authorization</strong></p>
+                        <p style="margin: 8px 0;">All information provided is true, accurate, complete, current, and not misleading. Bank authorized to verify details, conduct credit/fraud/identity/sanctions checks, and request additional information at any time. Applicable costs may be charged to account.</p>
+                        
+                        <p style="margin: 14px 0 8px 0;"><strong>G. Account Retention, Record-Keeping, and Banking Relationship (ETMO Framework)</strong></p>
+                        <p style="margin: 8px 0;">Account retention governed exclusively by Bank's internal Administration, Compliance, Legal, Security, and Risk functions. Accounts not closed solely upon client request due to regulatory obligations, record-retention duties, and compliance commitments. Bank retains sole discretion to maintain account in administrative, dormant, or restricted status.</p>
+                        
+                        <p style="margin: 14px 0 8px 0;"><strong>H. Compliance and Regulatory Framework</strong></p>
+                        <p style="margin: 8px 0;">Bank operates under sovereign license within diplomatic regulatory framework. Full compliance with AML/KYC, sanctions, source-of-funds requirements mandatory. Bank applies internationally aligned standards and may apply monitoring, restrictions, enhanced due diligence as required.</p>
+                        
+                        <p style="margin: 14px 0 8px 0;"><strong>I. Data Processing and Privacy</strong></p>
+                        <p style="margin: 8px 0;">Personal data required for evaluating, processing, administering, and managing application. Bank authorized to collect, process, record, verify, analyze, transfer, and store data for present and future transactions and to satisfy legal, compliance, and operational obligations. Data may be processed by authorized service providers and affiliates.</p>
+                        
+                        <p style="margin: 14px 0 8px 0;"><strong>J. Additional Standard Banking Provisions (General)</strong></p>
+                        <p style="margin: 8px 0;">Bank may decline, delay, restrict, suspend, refuse, reverse, or not process any application, instruction, or transaction where required for compliance, security, risk management, incomplete information, or unsatisfactory due diligence. Bank not liable for third-party acts, delays, failures. All fees (Bank, intermediary, network, blockchain) may be debited. Bank's books and records constitute prima facie evidence of account activity. Applicant solely responsible for safeguarding credentials and access elements. Applicant must notify Bank immediately of suspected compromise or unauthorized use. Applicant must promptly report material changes in information (address, employment, beneficial ownership, source of funds, tax status). Account must not be used for unlawful, fraudulent, sanctionable, or prohibited purposes. Applicant indemnifies Bank from all losses arising from breach of terms, inaccurate information, prohibited use, or third-party claims. To maximum extent permitted, Bank not liable for indirect, consequential, or punitive damages. Bank not liable for delays arising from force majeure, cyberattacks, regulatory intervention, or events beyond reasonable control. Applicant waives right to assert claims based on misunderstanding or inadequate explanation. Any dispute addressed exclusively under Bank's institutional framework and diplomatic jurisdiction.</p>
+                    </div>
+
+                    <div class="footer-text">
+                        For support, contact <a href="mailto:support@prominencebank.com">support@prominencebank.com</a>.
+                        <br><br>
+                        <em>This is an automated document. Please do not reply to this email.</em>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 40px; padding: 20px; background: #e0f2fe; border-radius: 8px; border-left: 4px solid #0284c7;">
+            <h3 style="margin-top: 0; color: #0c4a6e;">✅ Template Ready</h3>
+            <p style="margin: 8px 0; color: #0a5e8c;">This preview shows the exact email and PDF template that will be generated and sent on each application submission. All branding, colors, fonts, and layouts are final and professional.</p>
+        </div>
+    </div>
+</body>
+</html>

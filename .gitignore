@@ -43,3 +43,9 @@ next-env.d.ts
 # firebase
 firebase-debug.log
 firestore-debug.log
+
+# local temp/index files
+.idx/
+
+# build artifacts
+123Plugin.zip

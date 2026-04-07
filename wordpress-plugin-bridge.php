@@ -137,11 +137,48 @@ function faap_format_label($key) {
 
 function faap_get_letterhead_logo_url() {
     $logo = get_option('faap_letterhead_logo_url');
-    if (empty($logo)) {
-        // If not set, fall back to a logo shipped with the plugin.
-        $logo = plugins_url('Prominence Bank.png', __FILE__);
+    if (!empty($logo)) {
+        return esc_url($logo);
     }
-    return esc_url($logo);
+
+    $plugin_dir = plugin_dir_path(__FILE__);
+    $custom_logo_file = $plugin_dir . 'plugin-release/financial-account-application-portal/Prominence Bank.png';
+    $default_logo_file = $plugin_dir . 'Prominence Bank.png';
+
+    if (file_exists($custom_logo_file)) {
+        return esc_url(plugins_url('plugin-release/financial-account-application-portal/Prominence Bank.png', __FILE__));
+    }
+
+    if (file_exists($default_logo_file)) {
+        return esc_url(plugins_url('Prominence Bank.png', __FILE__));
+    }
+
+    return esc_url(plugins_url('Prominence Bank.png', __FILE__));
+}
+
+function faap_get_uploaded_file_path($url) {
+    if (empty($url) || !is_string($url)) {
+        return null;
+    }
+
+    $upload_dir = wp_upload_dir();
+    if (strpos($url, $upload_dir['baseurl']) === 0) {
+        return str_replace($upload_dir['baseurl'], $upload_dir['basedir'], $url);
+    }
+
+    return null;
+}
+
+function faap_get_data_image_src($value) {
+    if (!is_string($value)) {
+        return null;
+    }
+
+    if (preg_match('/(data:image\/[^;]+;base64,[A-Za-z0-9+\/=]+)/', $value, $matches)) {
+        return $matches[1];
+    }
+
+    return null;
 }
 
 function faap_generate_application_id() {
@@ -303,9 +340,12 @@ function faap_build_application_html($submission, $recipient = 'admin') {
     }
 
     $rows = '';
-    $excluded = ['emailSubject', 'emailBody', 'applicationData', 'mainDocumentFile', 'paymentProofFile', 'companyRegFile', 'signatureImage', 'attestation', 'submittedAt', 'status', 'type', 'accountTypeId', 'applicationId'];
+    $excluded = ['emailSubject', 'emailBody', 'applicationData', 'mainDocumentFile', 'paymentProofFile', 'companyRegFile', 'signatureImage', 'signature', 'attestation', 'submittedAt', 'status', 'type', 'accountTypeId', 'applicationId', 'passportPhoto', 'passportPhotoFile', 'paymentProof'];
 
     $attestationHtml = '';
+    $signatureSource = '';
+    $signatureText = '';
+
     if (!empty($data['attestation']) && is_array($data['attestation'])) {
         $att = $data['attestation'];
         $attestationLines = [];
@@ -322,33 +362,46 @@ function faap_build_application_html($submission, $recipient = 'admin') {
         if (isset($att['agreedToTerms'])) {
             $attestationLines[] = '<div><strong>Accepted Terms:</strong> ' . ($att['agreedToTerms'] ? 'Yes' : 'No') . '</div>';
         }
-
-        $attestationSignature = '';
-
-        $signatureSource = '';
         if (!empty($att['signatureImage']) && is_string($att['signatureImage'])) {
             $signatureSource = $att['signatureImage'];
-        } elseif (!empty($data['signatureImage']) && is_string($data['signatureImage'])) {
-            $signatureSource = $data['signatureImage'];
         }
 
-        if ($signatureSource && preg_match('/^(data:image\/[a-zA-Z]+;base64,[A-Za-z0-9+\/=]+)$/', $signatureSource, $sigMatch)) {
-            $attestationSignature = '<div style="margin-top:6px;border:1px solid #cbd5e1;border-radius:3px;padding:6px;background:#f9fafb;"><div style="font-size:10px;font-weight:600;color:#0f172a;margin-bottom:4px;">Applicant Signature</div><img src="' . esc_url($sigMatch[1]) . '" alt="Signature" style="max-width:200px;max-height:120px;height:auto;border:1px solid #cbd5e1;border-radius:3px;" /></div>';
-        }
+        $attestationHtml = '<div style="background:#f9fafb;border:1px solid #e2e8f0;border-radius:4px;padding:8px;margin-bottom:8px;font-size:13px;"><div style="font-weight:700;margin-bottom:4px;color:#0f172a;font-size:13px;">Attestation & Signature</div>' . implode('', $attestationLines);
+    }
 
-        $attestationHtml = '<div style="background:#f9fafb;border:1px solid #e2e8f0;border-radius:4px;padding:8px;margin-bottom:8px;font-size:11px;"><div style="font-weight:700;margin-bottom:4px;color:#0f172a;font-size:11px;">Attestation & Signature</div>' . implode('', $attestationLines) . $attestationSignature . '</div>';
+    if (empty($signatureSource) && !empty($data['signatureImage']) && is_string($data['signatureImage'])) {
+        $signatureSource = $data['signatureImage'];
+    }
+    if (empty($signatureSource) && !empty($data['signature']) && is_string($data['signature'])) {
+        $signatureSource = $data['signature'];
+    }
+
+    if (!empty($signatureSource)) {
+        $sigMatch = faap_get_data_image_src($signatureSource);
+        if ($sigMatch) {
+            $signatureText = '<div style="margin-top:8px;border:1px solid #cbd5e1;border-radius:4px;padding:10px;background:#f9fafb;"><div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:6px;">Applicant Signature</div><img src="' . esc_url($sigMatch) . '" alt="Signature" style="max-width:280px;max-height:180px;height:auto;display:block;border:1px solid #cbd5e1;border-radius:4px;" /></div>';
+        } else {
+            $signatureText = '<div style="margin-top:8px;border:1px solid #cbd5e1;border-radius:4px;padding:10px;background:#f9fafb;"><div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:6px;">Applicant Signature</div><div style="font-size:14px;color:#111827;line-height:1.5;">' . nl2br(esc_html($signatureSource)) . '</div></div>';
+        }
+    }
+
+    if (!empty($attestationHtml)) {
+        $attestationHtml .= $signatureText . '</div>';
+    } elseif (!empty($signatureText)) {
+        $attestationHtml = '<div style="background:#f9fafb;border:1px solid #e2e8f0;border-radius:4px;padding:10px;margin-bottom:10px;font-size:14px;"><div style="font-weight:700;margin-bottom:6px;color:#0f172a;font-size:14px;">Attestation & Signature</div>' . $signatureText . '</div>';
     }
 
     $format_item_html = function ($value) {
         if (is_array($value)) {
             $items = [];
             foreach ($value as $item) {
-                if (is_string($item) && preg_match('/(data:image\/[a-zA-Z]+;base64,[A-Za-z0-9+\/=]+)$/', $item, $matches)) {
-                    $text = trim(str_replace($matches[1], '', $item), ", \t\n\r");
+                $imageSrc = faap_get_data_image_src($item);
+                if (is_string($item) && $imageSrc) {
+                    $text = trim(str_replace($imageSrc, '', $item), ", \t\n\r");
                     if ($text !== '') {
                         $items[] = '<span>' . esc_html($text) . '</span>';
                     }
-                    $items[] = '<img src="' . esc_url($matches[1]) . '" alt="Applicant Signature" style="max-width:260px;height:auto;border:1px solid #cbd5e1;border-radius:5px;margin-top:6px;" />';
+                    $items[] = '<img src="' . esc_url($imageSrc) . '" alt="Applicant Signature" style="max-width:280px;height:auto;border:1px solid #cbd5e1;border-radius:5px;margin-top:8px;" />';
                 } else {
                     $items[] = '<span>' . esc_html(is_scalar($item) ? (string)$item : json_encode($item)) . '</span>';
                 }
@@ -356,14 +409,17 @@ function faap_build_application_html($submission, $recipient = 'admin') {
             return implode('<br>', $items);
         }
 
-        if (is_string($value) && preg_match('/(data:image\/[a-zA-Z]+;base64,[A-Za-z0-9+\/=]+)$/', $value, $matches)) {
-            $text = trim(str_replace($matches[1], '', $value), ", \t\n\r");
-            $html = '';
-            if ($text !== '') {
-                $html .= '<span>' . esc_html($text) . '</span><br>';
+        if (is_string($value)) {
+            $imageSrc = faap_get_data_image_src($value);
+            if ($imageSrc) {
+                $text = trim(str_replace($imageSrc, '', $value), ", \t\n\r");
+                $html = '';
+                if ($text !== '') {
+                    $html .= '<span>' . esc_html($text) . '</span><br>';
+                }
+                $html .= '<img src="' . esc_url($imageSrc) . '" alt="Applicant Signature" style="max-width:280px;height:auto;border:1px solid #cbd5e1;border-radius:5px;margin-top:8px;" />';
+                return $html;
             }
-            $html .= '<img src="' . esc_url($matches[1]) . '" alt="Applicant Signature" style="max-width:260px;height:auto;border:1px solid #cbd5e1;border-radius:5px;margin-top:6px;" />';
-            return $html;
         }
 
         return esc_html(is_scalar($value) ? (string)$value : json_encode($value));
@@ -374,7 +430,7 @@ function faap_build_application_html($submission, $recipient = 'admin') {
             continue;
         }
 
-        $rows .= '<tr><td style="padding:5px 6px;border:1px solid #e5e7eb;font-weight:600;background:#f9fafb;color:#111827;width:28%;font-size:10px;">' . esc_html(faap_format_label($key)) . '</td><td style="padding:5px 6px;border:1px solid #e5e7eb;color:#111827;font-size:10px;word-break:break-word;">' . $format_item_html($value) . '</td></tr>';
+        $rows .= '<tr><td style="padding:10px 12px;border:1px solid #e5e7eb;font-weight:700;background:#f9fafb;color:#111827;width:30%;font-size:15px;">' . esc_html(faap_format_label($key)) . '</td><td style="padding:10px 12px;border:1px solid #e5e7eb;color:#111827;font-size:15px;line-height:1.65;word-break:break-word;">' . $format_item_html($value) . '</td></tr>';
     }
 
     $attachments = [];
@@ -390,6 +446,8 @@ function faap_build_application_html($submission, $recipient = 'admin') {
         $attachmentItems = '<li style="color:#6b7280;">No documents uploaded.</li>';
     }
 
+    $emailSummaryHtml = ''; // Email summary not shown in PDF
+
     $user_name = esc_html($data['fullName'] ?? $data['name'] ?? 'Applicant');
     $user_email = esc_html($data['email'] ?? 'N/A');
     $logoUrl = faap_get_letterhead_logo_url();
@@ -400,16 +458,16 @@ function faap_build_application_html($submission, $recipient = 'admin') {
     $subject_template = $recipient === 'admin' ? get_option('faap_admin_subject_template', 'New Form Entry #{{applicationId}} - {{type}}') : get_option('faap_user_subject_template', 'New Form Entry #{{applicationId}} - {{type}}');
     $subject = str_replace(['{{applicationId}}', '{{type}}'], [esc_html($app_id), esc_html($type_label)], esc_html($subject_template));
 
-    return '<div style="font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f3f4f6;padding:18px;">
+    return '<div style="font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f3f4f6;padding:18px;font-size:14px;line-height:1.65;">
       <div style="max-width:800px;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;">
         <div style="' . ($recipient === 'admin' ? 'background:#d32f2f;color:#fff;padding:12px 16px;border-bottom:2px solid #b71c1c;font-weight:700;font-size:14px;letter-spacing:0.045em;">🔔 ADMIN NOTIFICATION' : 'background:#2e7d32;color:#fff;padding:12px 16px;border-bottom:2px solid #1b5e20;font-weight:700;font-size:14px;letter-spacing:0.045em;">✓ YOUR CONFIRMATION') . '</div>
-        <div style="background:#f8f9fa;padding:10px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;font-size:12px;">
+        <div style="background:#f8f9fa;padding:10px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;font-size:15px;">
           <div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-start;">
-            <div style="font-size:12px;font-weight:700;color:#111827;margin-bottom:2px;">'. $brand_name .'</div>
-            <div style="font-size:10px;color:#374151;margin-bottom:2px;"><strong>Email:</strong> '. $brand_email .'</div>
-            <div style="font-size:10px;color:#374151;margin-bottom:2px;"><strong>Address:</strong> P.B. 1257 Bonovo Road, Fomboni, Mwali, KM</div>
-            <div style="font-size:10px;color:#374151;"><strong>Phone:</strong> +1 (555) 123-4567</div>
-            <div style="font-size:9px;color:#6b7280;margin-top:4px;border-top:1px solid #d1d5db;padding-top:3px;">
+            <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:2px;">'. $brand_name .'</div>
+            <div style="font-size:13px;color:#374151;margin-bottom:2px;"><strong>Email:</strong> '. $brand_email .'</div>
+            <div style="font-size:13px;color:#374151;margin-bottom:2px;"><strong>Address:</strong> P.B. 1257 Bonovo Road, Fomboni, Mwali, KM</div>
+            <div style="font-size:13px;color:#374151;"><strong>Phone:</strong> +1 (555) 123-4567</div>
+            <div style="font-size:12px;color:#6b7280;margin-top:4px;border-top:1px solid #d1d5db;padding-top:3px;">
               <div><strong>Subj:</strong> ' . esc_html(substr($subject, 0, 45)) . '...</div>
               <div style="margin-top:1px;"><strong>ID:</strong> ' . esc_html($app_id) . '</div>
             </div>
@@ -421,31 +479,31 @@ function faap_build_application_html($submission, $recipient = 'admin') {
         </div>
 
         <div style="padding:12px;">
-          <h2 style="margin:0 0 4px;color:#111827;font-size:15px;line-height:1.2;">' . $header_title . '</h2>
-          <div style="color:#374151; margin:0 0 8px; font-size:11px;">Application ID: <strong>' . esc_html($app_id) . '</strong></div>
-          <div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;"><div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;padding:4px 6px;font-size:11px;">Type: <strong>' . esc_html($type_label) . '</strong></div><div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;padding:4px 6px;font-size:11px;">Submitted: <strong>' . esc_html(substr($submitted_at, 0, 10)) . '</strong></div></div>
+          <h2 style="margin:0 0 4px;color:#111827;font-size:18px;line-height:1.3;">' . $header_title . '</h2>
+          <div style="color:#374151; margin:0 0 8px; font-size:14px;">Application ID: <strong>' . esc_html($app_id) . '</strong></div>
+          <div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;"><div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;padding:6px 8px;font-size:14px;">Type: <strong>' . esc_html($type_label) . '</strong></div><div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;padding:6px 8px;font-size:14px;">Submitted: <strong>' . esc_html(substr($submitted_at, 0, 10)) . '</strong></div></div>
 
           <div style="margin-bottom:12px;">
-            <div style="font-weight:700;color:#111827;font-size:12px;margin-bottom:6px;border-bottom:1px solid #e5e7eb;padding-bottom:3px;">Application Summary</div>
-            <p style="margin:6px 0;font-size:11px;color:#374151;">This document contains comprehensive details of the submitted application for a ' . esc_html($type_label) . ' Account with Prominence Bank. All information provided below is as submitted by the applicant on ' . esc_html($submitted_at) . '. This application is now under review by our compliance and verification team.</p>
+            <div style="font-weight:700;color:#111827;font-size:15px;margin-bottom:6px;border-bottom:1px solid #e5e7eb;padding-bottom:3px;">Application Summary</div>
+            <p style="margin:6px 0;font-size:14px;color:#374151;line-height:1.6;">This document contains comprehensive details of the submitted application for a ' . esc_html($type_label) . ' Account with Prominence Bank. All information provided below is as submitted by the applicant on ' . esc_html($submitted_at) . '. This application is now under review by our compliance and verification team.</p>
           </div>
 
           <div style="margin-bottom:12px;">
-            <div style="font-weight:700;color:#111827;font-size:12px;margin-bottom:6px;border-bottom:1px solid #e5e7eb;padding-bottom:3px;">Application Details</div>
-            <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;font-size:11px;">' . $rows . '</table>
+            <div style="font-weight:700;color:#111827;font-size:16px;margin-bottom:8px;border-bottom:1px solid #e5e7eb;padding-bottom:4px;">Application Details</div>
+            <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;font-size:14px;">' . $rows . '</table>
           </div>
 
           ' . faap_get_payment_kyc_html($app_id, $recipient) . '
 
-          ' . faap_get_step9_review_html($submission) . '
+          ' . faap_get_full_attestation_terms_html($submission) . '
 
-          <div style="margin-bottom:12px;page-break-inside:avoid;"><div style="font-weight:700;color:#111827;font-size:12px;margin-bottom:6px;border-bottom:1px solid #e5e7eb;padding-bottom:3px;background:#f0f9ff;padding:6px;">Uploaded Documents & File Attachments</div><div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;padding:8px;"><ul style="margin:0 0 0 16px;padding:0;color:#111827;font-size:11px;line-height:1.5;">' . $attachmentItems . '</ul></div></div>
+          <div style="margin-bottom:12px;page-break-inside:avoid;"><div style="font-weight:700;color:#111827;font-size:14px;margin-bottom:6px;border-bottom:1px solid #e5e7eb;padding-bottom:3px;background:#f0f9ff;padding:6px;">Uploaded Documents & File Attachments</div><div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;padding:8px;"><ul style="margin:0 0 0 16px;padding:0;color:#111827;font-size:13px;line-height:1.5;">' . $attachmentItems . '</ul></div></div>
 
-          <div style="margin-bottom:12px;page-break-inside:avoid;"><div style="font-weight:700;color:#111827;font-size:12px;margin-bottom:6px;border-bottom:1px solid #e5e7eb;padding-bottom:3px;background:#f0f9ff;padding:6px;">Applicant Attestation & Signature</div>' . $attestationHtml . '</div>
+          <div style="margin-bottom:12px;page-break-inside:avoid;"><div style="font-weight:700;color:#111827;font-size:14px;margin-bottom:6px;border-bottom:1px solid #e5e7eb;padding-bottom:3px;background:#f0f9ff;padding:6px;">Applicant Attestation & Signature</div>' . $attestationHtml . '</div>
 
           <div style="margin-bottom:12px;page-break-inside:avoid;border-top:2px solid #e5e7eb;padding-top:10px;">
-            <div style="font-weight:700;color:#111827;font-size:11px;margin-bottom:6px;">Document Information & Processing Notes</div>
-            <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:4px;padding:8px;font-size:10px;line-height:1.4;color:#111827;">
+            <div style="font-weight:700;color:#111827;font-size:13px;margin-bottom:6px;">Document Information & Processing Notes</div>
+            <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:4px;padding:8px;font-size:12px;line-height:1.4;color:#111827;">
               <p style="margin:4px 0;"><strong>Document Generated:</strong> ' . esc_html(date('Y-m-d H:i:s')) . ' UTC</p>
               <p style="margin:4px 0;"><strong>Application Status:</strong> Under Review</p>
               <p style="margin:4px 0;"><strong>Processing:</strong> This application will be processed according to Prominence Bank\'s standard procedures, which include full KYC/AML verification, identity confirmation, source-of-funds verification, and sanctions screening. Processing may take 5-10 business days or longer depending on complexity and additional information requirements.</p>
@@ -453,7 +511,7 @@ function faap_build_application_html($submission, $recipient = 'admin') {
             </div>
           </div>
 
-          <div style="font-size:10px;color:#6b7280;margin-top:10px;border-top:1px solid #e5e7eb;padding-top:8px;text-align:center;">
+          <div style="font-size:12px;color:#6b7280;margin-top:10px;border-top:1px solid #e5e7eb;padding-top:8px;text-align:center;">
             <p style="margin:4px 0;">For support, contact <a href="mailto:support@prominencebank.com" style="color:#2563eb;text-decoration:none;">support@prominencebank.com</a></p>
             <p style="margin:4px 0;font-style:italic;">This is an automatically generated document. All information contained herein is confidential and intended solely for the use of the applicant and Prominence Bank.</p>
           </div>
@@ -463,50 +521,11 @@ function faap_build_application_html($submission, $recipient = 'admin') {
 }
 
 function faap_get_step9_review_html($submission) {
-    // Step 9: Review & Attestation - Full comprehensive terms (7-8 page PDF)
-    $step9_content = '<div style="margin-bottom:14px;">
-        <div style="font-weight:700;color:#fff;background:#0f172a;font-size:13px;margin-bottom:8px;border-radius:4px;padding:10px;">STEP 9: REVIEW, ATTESTATION & BINDING TERMS</div>
-        <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;padding:12px;color:#111827;line-height:1.6;">
-            
-            <p style="margin:0 0 10px 0;font-size:12px;"><strong>AGREED AND ATTESTED - BINDING LEGAL ACKNOWLEDGEMENT</strong></p>
-            <p style="margin:10px 0;font-size:11px;">By signing and submitting this Personal Bank Account Application, the Applicant(s) acknowledge(s), confirm(s), attest(s), represent(s), warrant(s), and irrevocably agree(s) to the following binding terms and conditions. These terms constitute a legally binding contract between the Applicant and Prominence Bank:</p>
-            
-            <p style="margin:10px 0 6px 0;font-size:12px;font-weight:700;"><strong>A. Mandatory Submission Requirements (Strict Compliance Standard)</strong></p>
-            <p style="margin:6px 0;font-size:11px;">The Applicant(s) understand(s), acknowledge(s), and accept(s) that Prominence Bank shall automatically reject, without substantive review, processing, or response, any application submitted without all mandatory items required by the Bank. Mandatory requirements include: (i) Complete and signed application form; (ii) Full Account Opening Fee payment (no partial payments accepted); (iii) Valid proof of payment with correct application reference; (iv) All required documentation, disclosures, and supporting materials specified herein; (v) Complete and legible identification documents. The Applicant(s) further acknowledge(s) that repeated submission of incomplete, deficient, inaccurate, or non-compliant applications may result in permanent disqualification from reapplying.</p>
-            
-            <p style="margin:10px 0 6px 0;font-size:12px;font-weight:700;"><strong>B. Payment Instructions & Requirements (Opening Fee Processing)</strong></p>
-            <p style="margin:6px 0;font-size:11px;">Payments via KTT/TELEX are strictly prohibited and will not be processed. Accepted payment methods are strictly limited to: (1) SWIFT international wire transfer to the designated bank account with complete payment reference, or (2) Cryptocurrency transfer (USDT TRC20) to the designated wallet address. The Application ID must be included in the payment reference field exactly as instructed. Payments without proper reference may be delayed, rejected, or returned to the sender. The Applicant assumes all risk associated with payment transmission, including intermediary bank fees and transfer delays.</p>
-            
-            <p style="margin:10px 0 6px 0;font-size:12px;font-weight:700;"><strong>C. Account Opening Requirements & Minimum Balance (Ongoing Obligation)</strong></p>
-            <p style="margin:6px 0;font-size:11px;">A minimum balance of USD 5,000 (or EUR equivalent) must be maintained in the account at all times. This is a continuing obligation that persists for the entire duration of the account. The Applicant must maintain ongoing adherence to the Bank\'s account policies, compliance standards, and regulatory requirements. If the account balance falls below the minimum required level at any point, the Bank may, at its sole discretion, restrict services, freeze the account, place the account under enhanced monitoring, or take other remedial action as permitted under the account agreement.</p>
-            
-            <p style="margin:10px 0 6px 0;font-size:12px;font-weight:700;"><strong>D. Finality of Account Type Selection (No Conversion After Opening)</strong></p>
-            <p style="margin:6px 0;font-size:11px;">The account category selected in this application is final and irrevocable. The account type may not thereafter be amended, converted, substituted, reclassified, upgraded, downgraded, or modified into any other account type. To obtain a different account type, the Applicant must submit a new, separate application with all required documentation, undergo a complete new due diligence review, and pay a new Account Opening Fee. The Bank will not recognize or honor any requests for account type conversion or modification.</p>
-            
-            <p style="margin:10px 0 6px 0;font-size:12px;font-weight:700;"><strong>E. Transaction Profile & Ongoing Due Diligence (Continuous Monitoring)</strong></p>
-            <p style="margin:6px 0;font-size:11px;">Account activity, transaction patterns, and fund sources must reasonably align with the information declared in this application, including stated employment, business type, source of funds, anticipated transaction volumes, and countries involved. Any material deviation from declared transaction profile may trigger additional verification requests, enhanced due diligence procedures, transaction restrictions, account monitoring, or account closure. The Bank reserves the right to request detailed explanations, supporting documentation, and source-of-funds verification at any time. Unexplained deviations may result in account suspension or closure without advance notice.</p>
-            
-            <p style="margin:10px 0 6px 0;font-size:12px;font-weight:700;"><strong>F. Accuracy & Authorization (Complete Truthfulness Required)</strong></p>
-            <p style="margin:6px 0;font-size:11px;">All information provided in this application and all supporting documentation is true, accurate, complete, current, and not misleading. The Applicant represents and warrants that he/she is authorized to provide this information and properly represent all beneficial owners. The Bank is authorized to verify all details provided, conduct credit checks, perform fraud investigations, conduct identity verification, screen against sanctions lists, and request additional information at any time. The Applicant agrees that all applicable fees and charges for verification services may be debited to the account.</p>
-            
-            <p style="margin:10px 0 6px 0;font-size:12px;font-weight:700;"><strong>G. Account Retention, Record-Keeping & Banking Relationship (ETMO Framework)</strong></p>
-            <p style="margin:6px 0;font-size:11px;">Account retention, closure, and operational status are governed exclusively by the Bank\'s internal Administration, Compliance, Legal, Security, and Risk management functions. Due to regulatory obligations, record-retention duties, and compliance commitments, accounts are not closed immediately upon client request. The Bank retains sole and absolute discretion to maintain accounts in administrative status, dormant status, or restricted status as required by law or internal compliance policies. The Applicant acknowledges that account closure may be delayed for extended periods to satisfy regulatory or compliance requirements.</p>
-            
-            <p style="margin:10px 0 6px 0;font-size:12px;font-weight:700;"><strong>H. Compliance & Regulatory Framework (International Standards)</strong></p>
-            <p style="margin:6px 0;font-size:11px;">Prominence Bank operates under a sovereign license within an international regulatory framework. Full compliance with Anti-Money Laundering (AML), Know-Your-Customer (KYC), sanctions screening, source-of-funds verification, and Countering the Financing of Terrorism (CFT) requirements is mandatory. The Bank applies internationally aligned standards and may apply transaction monitoring, service restrictions, enhanced due diligence, and compliance procedures as required. The Applicant shall comply fully with all Bank directives regarding compliance matters.</p>
-            
-            <p style="margin:10px 0 6px 0;font-size:12px;font-weight:700;"><strong>I. Data Processing, Privacy & Information Storage (Authorized Use)</strong></p>
-            <p style="margin:6px 0;font-size:11px;">Personal data and account information submitted in this application is required for evaluating, processing, administering, and managing the application and resulting account. Prominence Bank is authorized to collect, process, record, verify, analyze, transfer, store, and retain data for present and future transactions and to satisfy legal, regulatory, compliance, and operational obligations. Data may be processed by authorized third-party service providers, affiliates, and other financial institutions as required. The Applicant consents to all such processing and transfer of personal data.</p>
-            
-            <p style="margin:10px 0 6px 0;font-size:12px;font-weight:700;"><strong>J. Additional Standard Banking Provisions & Liability Limitations (General Terms)</strong></p>
-            <p style="margin:6px 0;font-size:11px;">Prominence Bank may decline, delay, restrict, suspend, refuse, reverse, or not process any application, instruction, or transaction where required for compliance, security, risk management, incomplete information, or unsatisfactory due diligence. The Bank is not liable for third-party acts, payment delays, or third-party failures. All fees (Bank fees, intermediary fees, network fees, blockchain fees) may be debited to the account. The Bank\'s books and records constitute prima facie evidence of account activity. The Applicant is solely and exclusively responsible for safeguarding all credentials, access codes, and authentication elements; the Applicant must notify the Bank immediately of any suspected compromise or unauthorized use. The Applicant must promptly report all material changes in personal information (address, employment, beneficial ownership, source of funds, tax status). The account must not be used for unlawful, fraudulent, sanctionable, or prohibited purposes. The Applicant hereby indemnifies and holds harmless Prominence Bank from all losses, damages, and claims arising from breach of these terms, inaccurate information, prohibited use, or third-party claims. To the maximum extent permitted by law, the Bank is not liable for indirect, consequential, incidental, or punitive damages. The Bank is not liable for delays arising from force majeure, cyberattacks, regulatory intervention, or events beyond reasonable control. The Applicant waives the right to assert claims based on misunderstanding or inadequate explanation of terms. Any dispute shall be addressed exclusively under Prominence Bank\'s institutional framework and applicable jurisdiction.</p>
-            
-            <p style="margin:12px 0 6px 0;font-size:12px;font-weight:700;color:#d32f2f;"><strong>APPLICANT ACKNOWLEDGEMENT & CERTIFICATION</strong></p>
-            <p style="margin:6px 0;font-size:11px;">The Applicant(s) hereby certify and declare under penalty of law that: (i) they have carefully read, fully understand, and completely accept all terms and conditions stated above and in the complete application form; (ii) they acknowledge the binding nature of these terms; (iii) they are authorized to execute this application; (iv) all information provided is true and accurate; and (v) by submitting this application, they irrevocably acknowledge and agree to be fully and completely bound by all these terms, including all obligations, restrictions, and limitations specified herein. This attestation constitutes a binding legal agreement.</p>
+    return '<div style="margin-bottom:18px;page-break-inside:avoid;">
+        <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;padding:14px;color:#111827;line-height:1.6;font-size:13px;">
+            ' . faap_get_full_agreed_attested_html() . '
         </div>
     </div>';
-    
-    return $step9_content;
 }
 
 function faap_build_application_pdf_html($submission, $recipient = 'admin') {
@@ -519,6 +538,73 @@ function faap_build_application_pdf_html($submission, $recipient = 'admin') {
         $adminContent = str_replace('background:#d32f2f;color:#fff;padding:12px 16px;border-bottom:2px solid #b71c1c;', 'background:#2e7d32;color:#fff;padding:12px 16px;border-bottom:2px solid #1b5e20;', $adminContent);
     }
     return '<html><head><meta charset="utf-8"><style>body{margin:0;padding:0;background:#f3f4f6;} </style></head><body>' . $adminContent . '</body></html>';
+}
+
+function faap_get_full_attestation_terms_html($submission) {
+    return '<div style="margin-bottom:18px;page-break-inside:avoid;">
+        <div style="background:#fefce8;border:1px solid #fde047;border-radius:6px;padding:18px;color:#111827;line-height:1.7;font-size:13px;">
+            <div style="font-weight:700;font-size:15px;margin-bottom:12px;border-bottom:2px solid #fbbf24;padding-bottom:8px;color:#0f172a;">AGREED AND ATTESTED</div>
+            <p style="margin:10px 0;font-size:13px;line-height:1.75;">By signing and submitting this Personal Bank Account Application, the Applicant(s) acknowledge(s), confirm(s), attest(s), represent(s), warrant(s), and irrevocably agree(s) to the following terms and conditions, including all 17 sections of this AGREED AND ATTESTED clause:</p>
+
+            <div style="margin-top:12px;"><strong>A. Mandatory Submission Requirements (Strict Compliance)</strong></div>
+            <p style="margin:8px 0;font-size:13px;">The Applicant(s) understand(s), acknowledge(s), and accept(s) that the Bank shall automatically reject, without substantive review, processing, or response, any application submitted without all mandatory items required by the Bank, including, without limitation:</p>
+            <ul style="margin:8px 0 8px 20px;padding:0;font-size:13px;"><li>Full Personal Bank Account opening fee</li><li>Valid proof of payment</li><li>All required documentation, disclosures, and supporting materials specified in the application form</li></ul>
+            <p style="margin:8px 0;font-size:13px;">The Applicant(s) further acknowledge(s) that repeated submission of incomplete, deficient, inaccurate, or non-compliant applications may, at the Bank&#39;s sole and absolute discretion, result in permanent disqualification from reapplying for any banking product or service.</p>
+
+            <div style="margin-top:12px;"><strong>B. Payment Instructions (Opening Fee)</strong></div>
+            <p style="margin:8px 0;font-size:13px;">The Applicant(s) acknowledge(s), understand(s), and accept(s) that payments made via KTT/TELEX are strictly prohibited and shall not be accepted under any circumstances for payment of the bank account opening fee. Accepted methods of payment for the opening fee are strictly limited to the following:</p>
+            <ul style="margin:8px 0 8px 20px;padding:0;font-size:13px;"><li>SWIFT international wire transfer</li><li>Cryptocurrency transfer to the designated wallet address listed in the application form</li></ul>
+            <p style="margin:8px 0;font-size:13px;">The Applicant(s) further acknowledge(s) that the Application ID must be included in the payment reference field exactly as instructed by the Bank in order to ensure proper and timely allocation of funds. Incomplete, inaccurate, omitted, misdirected, or improperly referenced payments may delay processing and may result in rejection of the application, without liability to the Bank.</p>
+
+            <div style="margin-top:12px;"><strong>C. Account Opening Requirements</strong></div>
+            <p style="margin:8px 0;font-size:13px;">The Applicant(s) acknowledge(s), understand(s), and accept(s) that:</p>
+            <ul style="margin:8px 0 8px 20px;padding:0;font-size:13px;"><li>A minimum balance of USD/EUR 5,000 must be maintained in the account at all times.</li><li>Ongoing adherence to the Bank&#39;s account policies, procedures, operational requirements, and compliance standards is required in order to maintain access to banking services.</li><li>If the account balance falls below the minimum required level, the Bank may, in its sole discretion, restrict services, request corrective funding, apply internal controls, and/or place the account under compliance, risk, or administrative review until such deficiency has been remedied.</li></ul>
+
+            <div style="margin-top:12px;"><strong>D. Finality of Account Type Selection; No Conversion or Reclassification After Opening</strong></div>
+            <p style="margin:8px 0;font-size:13px;">The Applicant(s) hereby acknowledge(s), confirm(s), represent(s), warrant(s), and irrevocably agree(s) that the account category selected in this Application is made solely at the Applicant&#39;s own election, responsibility, and risk, and shall be deemed final for purposes of the submitted Application.</p>
+            <p style="margin:8px 0;font-size:13px;">Once the Application has been submitted, approved by the Bank, and the account has been opened, activated, or established under the selected account category, such account category shall be final and may not thereafter be amended, converted, substituted, re-designated, reclassified, exchanged, or otherwise modified into any other account type, whether in whole or in part.</p>
+
+            <div style="margin-top:12px;"><strong>E. Transaction Profile and Ongoing Due Diligence</strong></div>
+            <p style="margin:8px 0;font-size:13px;">The Applicant(s) acknowledge(s) and accept(s) that account activity must at all times reasonably align with the information declared in this application, including source of funds, source of wealth, countries involved, anticipated transactional activity, expected volumes, and maximum transfer values.</p>
+            <p style="margin:8px 0;font-size:13px;">Any material deviation, inconsistency, anomaly, or change in activity profile may require additional verification and may, for compliance, security, legal, reputational, or operational reasons, be delayed, restricted, reviewed, declined, or otherwise subject to enhanced due diligence.</p>
+
+            <div style="margin-top:12px;"><strong>F. Accuracy and Authorization</strong></div>
+            <p style="margin:8px 0;font-size:13px;">The Applicant(s) hereby affirm(s), represent(s), warrant(s), and undertake(s) that all information provided in this application is true, accurate, complete, current, and not misleading in any respect. The Applicant(s) hereby authorize(s) the Bank to verify all details, conduct credit, fraud-prevention, identity, sanctions, adverse media, compliance, and risk checks, including AML/KYC screening.</p>
+
+            <div style="margin-top:12px;"><strong>G. Account Retention, Record-Keeping, and Banking Relationship</strong></div>
+            <p style="margin:8px 0;font-size:13px;">Account status, retention, restriction, suspension, and closure decisions are governed exclusively by the Bank&#39;s internal Administration, Compliance, Legal, Security, and Risk functions. The Bank retains sole discretion to maintain the account in an administrative, dormant, restricted, archived, or other non-operational status when necessary for record retention, compliance review, or orderly settlement.</p>
+
+            <div style="margin-top:12px;"><strong>H. Compliance and Regulatory Framework</strong></div>
+            <p style="margin:8px 0;font-size:13px;">The Applicant(s) acknowledge(s) that the Bank operates under a sovereign license within a diplomatic regulatory framework and that all services and relationships are subject to the Bank&#39;s internal governance, policies, procedures, and risk-management standards.</p>
+
+            <div style="margin-top:12px;"><strong>I. Data Processing and Privacy</strong></div>
+            <p style="margin:8px 0;font-size:13px;">The Applicant(s) acknowledge(s) that personal data provided in this application is required for evaluation, processing, verification, administration, and compliance. The Bank is authorized to collect, process, transfer, retain, and store such data to satisfy legal, audit, fraud-prevention, cybersecurity, and regulatory requirements.</p>
+
+            <div style="margin-top:12px;"><strong>J. Additional Standard Banking Provisions</strong></div>
+            <p style="margin:8px 0;font-size:13px;">The Bank may, at its sole discretion, decline, delay, restrict, suspend, refuse, reverse, or not process any application, account service, instruction, transaction, transfer, payment, or product feature where required for compliance, security, risk management, legal protection, incomplete information, unsatisfactory due diligence, or any other legitimate reason.</p>
+
+            <div style="margin-top:12px;"><strong>K. Instructions and Authentication</strong></div>
+            <p style="margin:8px 0;font-size:13px;">The Applicant(s) authorize(s) the Bank to act only upon instructions received through approved channels, subject to authentication, verification, and internal review. The Bank may refuse, hold, reverse, or decline instructions that fail verification, appear inconsistent, fraudulent, unusual, high-risk, or non-compliant.</p>
+
+            <div style="margin-top:12px;"><strong>L. Online Banking Security</strong></div>
+            <p style="margin:8px 0;font-size:13px;">The Applicant(s) are solely responsible for safeguarding usernames, passwords, PINs, devices, tokens, wallets, email accounts, mobile numbers, and all other access credentials. Unauthorized access due to negligence or compromised credentials may result in restricted access or other security actions.</p>
+
+            <div style="margin-top:12px;"><strong>M. Ongoing Disclosure Duty</strong></div>
+            <p style="margin:8px 0;font-size:13px;">The Applicant(s) must promptly notify the Bank of any material changes to name, address, residence, nationality, tax status, employment, beneficial ownership, source of funds, source of wealth, expected account activity, risk profile, contact information, or legal status.</p>
+
+            <div style="margin-top:12px;"><strong>N. Prohibited Use</strong></div>
+            <p style="margin:8px 0;font-size:13px;">The account and any linked services must not be used for unlawful, fraudulent, deceptive, abusive, sanctionable, evasive, or prohibited purposes. Any prohibited use is grounds for account restriction, closure, or other action.</p>
+
+            <div style="margin-top:12px;"><strong>O. Indemnity</strong></div>
+            <p style="margin:8px 0;font-size:13px;">The Applicant(s) agree(s) to indemnify, defend, and hold harmless the Bank and its affiliates, officers, directors, employees, agents, and service providers from losses, damages, liabilities, claims, or expenses arising from breach of these terms, inaccurate information, prohibited use of the account, or third-party claims.</p>
+
+            <div style="margin-top:12px;"><strong>P. Limitation of Liability</strong></div>
+            <p style="margin:8px 0;font-size:13px;">To the maximum extent permitted by law, the Bank shall not be liable for indirect, incidental, consequential, special, or punitive damages arising out of or relating to this Application, account services, transactions, or any related information or documentation.</p>
+
+            <div style="margin-top:12px;"><strong>Q. Severability, Force Majeure, and Governing Terms</strong></div>
+            <p style="margin:8px 0;font-size:13px;">If any provision of this AGREED AND ATTESTED section is found invalid or unenforceable, the remaining provisions remain in full force. The Bank may be excused from performance due to force majeure events. This Application is subject to the Bank&#39;s governing terms, policies, and applicable internal standards.</p>
+        </div>
+    </div>';
 }
 
 function faap_build_simple_email_body($submission) {
@@ -766,24 +852,44 @@ function faap_handle_submission($request) {
         // Email body contains only greeting - full form data is in PDF attachment
         $user_body = $user_greeting;
         $admin_body = $admin_greeting;
+
         $attachments = [];
-        if (!empty($params['mainDocumentFile'])) $attachments[] = $params['mainDocumentFile'];
-        if (!empty($params['paymentProofFile'])) $attachments[] = $params['paymentProofFile'];
-        if (!empty($params['companyRegFile'])) $attachments[] = $params['companyRegFile'];
+        $attachment_paths = [];
+        if (!empty($params['mainDocumentFile'])) {
+            $attachments[] = $params['mainDocumentFile'];
+            $path = faap_get_uploaded_file_path($params['mainDocumentFile']);
+            if ($path && file_exists($path)) {
+                $attachment_paths[] = $path;
+            }
+        }
+        if (!empty($params['paymentProofFile'])) {
+            $attachments[] = $params['paymentProofFile'];
+            $path = faap_get_uploaded_file_path($params['paymentProofFile']);
+            if ($path && file_exists($path)) {
+                $attachment_paths[] = $path;
+            }
+        }
+        if (!empty($params['companyRegFile'])) {
+            $attachments[] = $params['companyRegFile'];
+            $path = faap_get_uploaded_file_path($params['companyRegFile']);
+            if ($path && file_exists($path)) {
+                $attachment_paths[] = $path;
+            }
+        }
 
         // Generate separate PDFs for admin and client with appropriate headers
         $admin_pdf_attachment = faap_generate_application_pdf($params, 'admin');
         $client_pdf_attachment = faap_generate_application_pdf($params, 'applicant');
 
         if (!empty($user_email)) {
-            $client_attachments = $attachments;
+            $client_attachments = $attachment_paths;
             if ($client_pdf_attachment && file_exists($client_pdf_attachment)) {
                 $client_attachments[] = $client_pdf_attachment;
             }
             wp_mail($user_email, $user_subject, $user_body, $headers, $client_attachments);
         }
 
-        $admin_attachments = $attachments;
+        $admin_attachments = $attachment_paths;
         if ($admin_pdf_attachment && file_exists($admin_pdf_attachment)) {
             $admin_attachments[] = $admin_pdf_attachment;
         }

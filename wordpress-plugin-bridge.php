@@ -43,7 +43,7 @@ function faap_setup_database() {
 
     // Set default frontend URL if not set yet.
     if (!get_option('faap_frontend_url')) {
-        add_option('faap_frontend_url', 'https://prominencebank.com:9002/');
+        add_option('faap_frontend_url', 'https://form.prominencebank.com/');
     }
 }
 
@@ -1412,7 +1412,7 @@ function faap_admin_manage_forms() {
             <p><strong>Basic Usage:</strong> Add <code>[financial_form]</code> to your page content.</p>
             <p><strong>Custom URL:</strong> If you need to point to a different frontend URL, use <code>[financial_form url="https://your-custom-url.com"]</code>.</p>
             <p>The form will load in an iframe with a height of 1200px. Adjust the height in the shortcode function if needed.</p>
-            <p><strong>Note:</strong> Ensure your frontend URL is set correctly in the plugin settings (default: https://prominencebank.com:9002/).</p>
+            <p><strong>Note:</strong> Ensure your frontend URL is set correctly in the plugin settings (default: https://form.prominencebank.com/).</p>
         </div>
     </div>
 
@@ -1680,7 +1680,7 @@ function faap_admin_manage_forms() {
 }
 
 add_shortcode('financial_form', function($atts) {
-    $defaultUrl = 'https://prominencebank.com:9002/';
+    $defaultUrl = 'https://form.prominencebank.com/';
     // Accept custom URL via shortcode [financial_form url="..."] for testing.
     $url = isset($atts['url']) ? esc_url_raw($atts['url']) : get_option('faap_frontend_url', $defaultUrl);
     if (empty($url)) {

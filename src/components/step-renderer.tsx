@@ -530,7 +530,7 @@ export function StepRenderer() {
   const stopDrawing = () => {
     setIsDrawing(false);
     if (canvasRef.current) {
-      const dataUrl = canvasRef.current.toDataURL('image/jpeg', 0.9);
+      const dataUrl = canvasRef.current.toDataURL('image/png');
       if (data.type === 'personal') {
         updateData({ attestation: { ...data.attestation, signatureImage: dataUrl } });
       } else {

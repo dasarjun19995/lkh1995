@@ -190,8 +190,14 @@ function faap_get_data_image_src($value) {
             return $full_data_uri; // Fallback to data URI if upload dir not available
         }
 
-        // Create a unique filename - force PNG format for better compatibility
-        $filename = 'signature-' . uniqid() . '.png';
+        // Determine file extension from the incoming image type
+        $extension = 'png';
+        if (strpos($image_type, 'jpeg') !== false || strpos($image_type, 'jpg') !== false) {
+            $extension = 'jpg';
+        } elseif (strpos($image_type, 'png') !== false) {
+            $extension = 'png';
+        }
+        $filename = 'signature-' . uniqid() . '.' . $extension;
         $file_path = trailingslashit($upload_dir['path']) . $filename;
 
         error_log('FAAP: Attempting to save signature to: ' . $file_path . ' (directory exists: ' . (is_dir(dirname($file_path)) ? 'YES' : 'NO') . ')');

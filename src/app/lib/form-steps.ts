@@ -8,6 +8,12 @@ export type FormField = {
   required?: boolean;
   options?: string[];
   width?: "full" | "half";
+  numericOnly?: boolean;
+  validation?: {
+    notFutureDates?: boolean;
+    notExpiredDates?: boolean;
+    matchField?: string;
+  };
 };
 
 export type FormStep = {
@@ -32,11 +38,11 @@ export const PERSONAL_STEPS: FormStep[] = [
       { id: "f1", label: "Place of birth *", name: "pob", type: "text", width: "half", required: true },
       { id: "f6", label: "Nationality *", name: "nationality", type: "text", width: "half", required: true },
       { id: "f7", label: "Passport/ID No. *", name: "passportNo", type: "text", width: "half", required: true },
-      { id: "f8", label: "Passport/ID date of issue *", name: "passportIssue", type: "date", width: "half", required: true },
-      { id: "f9", label: "Passport/ID Expiration date *", name: "passportExpiry", type: "date", width: "half", required: true },
+      { id: "f8", label: "Passport/ID date of issue *", name: "passportIssue", type: "date", width: "half", required: true, validation: { notFutureDates: true } },
+      { id: "f9", label: "Passport/ID Expiration date *", name: "passportExpiry", type: "date", width: "half", required: true, validation: { notExpiredDates: true } },
       { id: "f10", label: "Country of issue *", name: "passportCountry", type: "text", width: "half", required: true },
-      { id: "f11", label: "Telephone No.", name: "phone", type: "text", width: "half" },
-      { id: "f12", label: "Fax No.", name: "fax", type: "text", width: "half" },
+      { id: "f11", label: "Telephone No.", name: "phone", type: "text", width: "half", numericOnly: true },
+      { id: "f12", label: "Fax No.", name: "fax", type: "text", width: "half", numericOnly: true },
     ]
   },
   {
@@ -52,8 +58,8 @@ export const PERSONAL_STEPS: FormStep[] = [
       { id: "f17", label: "Zip code", name: "zip", type: "text", width: "half" },
       { id: "f18", label: "Country *", name: "country", type: "text", width: "half", required: true },
       { id: "f19", label: "Email address *", name: "email", type: "email", width: "half", required: true },
-      { id: "f20", label: "Confirm email address *", name: "emailConfirm", type: "email", width: "half", required: true },
-      { id: "f21", label: "Mobile No. *", name: "mobile", type: "text", width: "half", required: true },
+      { id: "f20", label: "Confirm email address *", name: "emailConfirm", type: "email", width: "half", required: true, validation: { matchField: "email" } },
+      { id: "f21", label: "Mobile No. *", name: "mobile", type: "text", width: "half", required: true, numericOnly: true },
     ]
   },
   {
@@ -429,7 +435,7 @@ export const BUSINESS_STEPS: FormStep[] = [
       { id: "bf5", label: "State", name: "state", type: "text", width: "half" },
       { id: "bf6", label: "Zip code", name: "zip", type: "text", width: "half" },
       { id: "bf7", label: "Country *", name: "country", type: "text", width: "half", required: true },
-      { id: "bf8", label: "Telephone No. *", name: "phone", type: "text", width: "half", required: true },
+      { id: "bf8", label: "Telephone No. *", name: "phone", type: "text", width: "half", required: true, numericOnly: true },
       { id: "bf9", label: "Company registration No.", name: "regNumber", type: "text", width: "half" },
       { id: "bf10", label: "Date of incorporation *", name: "incorporationDate", type: "date", width: "half", required: true },
       { id: "bf11", label: "Tax ID/VAT Number", name: "taxId", type: "text", width: "half" },
@@ -469,12 +475,12 @@ export const BUSINESS_STEPS: FormStep[] = [
       { id: "bf24_cty", label: "Country", name: "signatoryCountry", type: "text", width: "half", required: true },
       { id: "bf25", label: "Nationality", name: "signatoryNationality", type: "text", width: "half", required: true },
       { id: "bf26", label: "Passport/ID No.", name: "signatoryPassport", type: "text", width: "half", required: true },
-      { id: "bf27", label: "Passport Issue Date", name: "signatoryPassportIssue", type: "date", width: "half", required: true },
-      { id: "bf28", label: "Passport Expiration Date", name: "signatoryPassportExpiry", type: "date", width: "half", required: true },
+      { id: "bf27", label: "Passport Issue Date", name: "signatoryPassportIssue", type: "date", width: "half", required: true, validation: { notFutureDates: true } },
+      { id: "bf28", label: "Passport Expiration Date", name: "signatoryPassportExpiry", type: "date", width: "half", required: true, validation: { notExpiredDates: true } },
       { id: "bf29", label: "Signatory Email", name: "signatoryEmail", type: "email", width: "half", required: true },
-      { id: "bf29_c", label: "Confirm Signatory Email", name: "signatoryEmailConfirm", type: "email", width: "half", required: true },
-      { id: "bf30", label: "Mobile No.", name: "signatoryPhone", type: "text", width: "half", required: true },
-      { id: "bf30_f", label: "Fax No.", name: "signatoryFax", type: "text", width: "half" },
+      { id: "bf29_c", label: "Confirm Signatory Email", name: "signatoryEmailConfirm", type: "email", width: "half", required: true, validation: { matchField: "signatoryEmail" } },
+      { id: "bf30", label: "Mobile No.", name: "signatoryPhone", type: "text", width: "half", required: true, numericOnly: true },
+      { id: "bf30_f", label: "Fax No.", name: "signatoryFax", type: "text", width: "half", numericOnly: true },
     ]
   },
   {
@@ -488,11 +494,11 @@ export const BUSINESS_STEPS: FormStep[] = [
       { id: "bf32", label: "Director Last Name", name: "directorLastName", type: "text", width: "half", required: true },
       { id: "bf33", label: "Director Nationality", name: "directorNationality", type: "text", width: "half", required: true },
       { id: "bf34", label: "Passport/ID No.", name: "directorPassport", type: "text", width: "half", required: true },
-      { id: "bf34_i", label: "Passport Issue Date", name: "directorPassportIssue", type: "date", width: "half", required: true },
-      { id: "bf34_e", label: "Passport Expiration Date", name: "directorPassportExpiry", type: "date", width: "half", required: true },
+      { id: "bf34_i", label: "Passport Issue Date", name: "directorPassportIssue", type: "date", width: "half", required: true, validation: { notFutureDates: true } },
+      { id: "bf34_e", label: "Passport Expiration Date", name: "directorPassportExpiry", type: "date", width: "half", required: true, validation: { notExpiredDates: true } },
       { id: "bf35", label: "Director Address", name: "directorAddress", type: "text", width: "full" },
       { id: "bf36", label: "Director Email", name: "directorEmail", type: "email", width: "half", required: true },
-      { id: "bf37", label: "Director Phone", name: "directorPhone", type: "text", width: "half", required: true },
+      { id: "bf37", label: "Director Phone", name: "directorPhone", type: "text", width: "half", required: true, numericOnly: true },
     ]
   },
   {
@@ -507,10 +513,10 @@ export const BUSINESS_STEPS: FormStep[] = [
       { id: "bf39", label: "UBO Last Name", name: "beneficiaryLastName", type: "text", width: "half", required: true },
       { id: "bf41", label: "UBO Nationality", name: "beneficiaryNationality", type: "text", width: "half", required: true },
       { id: "bf42", label: "UBO Passport No.", name: "beneficiaryPassport", type: "text", width: "half", required: true },
-      { id: "bf42_i", label: "Passport Issue Date", name: "beneficiaryPassportIssue", type: "date", width: "half", required: true },
-      { id: "bf42_e", label: "Passport Expiration Date", name: "beneficiaryPassportExpiry", type: "date", width: "half", required: true },
+      { id: "bf42_i", label: "Passport Issue Date", name: "beneficiaryPassportIssue", type: "date", width: "half", required: true, validation: { notFutureDates: true } },
+      { id: "bf42_e", label: "Passport Expiration Date", name: "beneficiaryPassportExpiry", type: "date", width: "half", required: true, validation: { notExpiredDates: true } },
       { id: "bf43", label: "UBO Address", name: "beneficiaryAddress", type: "text", width: "full" },
-      { id: "bf43_p", label: "Phone No.", name: "beneficiaryPhone", type: "text", width: "half", required: true },
+      { id: "bf43_p", label: "Phone No.", name: "beneficiaryPhone", type: "text", width: "half", required: true, numericOnly: true },
       { id: "bf43_e", label: "Email Address", name: "beneficiaryEmail", type: "email", width: "half", required: true },
     ]
   },

@@ -199,7 +199,7 @@ function ApplicationLayout() {
         <div className="flex items-center ml-16">
           <div className="bg-[#14284a] p-2 rounded-lg" style={{ boxShadow: '0 0 32px 8px #3ec6ff, 0 0 8px 2px #1a3a5d' }}>
             <Image
-              src="/Prominence Bank.png"
+              src="/prominence-bank.png"
               alt="Prominence Bank Logo"
               width={120}
               height={120}

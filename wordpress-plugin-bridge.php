@@ -174,8 +174,32 @@ function faap_get_data_image_src($value) {
         return null;
     }
 
-    if (preg_match('/(data:image\/[^;]+;base64,[A-Za-z0-9+\/=]+)/', $value, $matches)) {
-        return $matches[1];
+    if (preg_match('/(data:image\/([^;]+);base64,([A-Za-z0-9+\/=]+))/', $value, $matches)) {
+        // Try to save the base64 image to a file and return the file URL
+        $full_data_uri = $matches[1];
+        $image_type = $matches[2];
+        $image_data = $matches[3];
+        
+        // Get upload directory
+        $upload_dir = wp_upload_dir();
+        if (!isset($upload_dir['path'])) {
+            return $full_data_uri; // Fallback to data URI if upload dir not available
+        }
+        
+        // Create a unique filename
+        $filename = 'signature-' . uniqid() . '.' . (strpos($image_type, 'png') !== false ? 'png' : 'jpg');
+        $file_path = trailingslashit($upload_dir['path']) . $filename;
+        
+        // Decode and save the image
+        $decoded_image = base64_decode($image_data, true);
+        if ($decoded_image !== false && file_put_contents($file_path, $decoded_image)) {
+            // Return the file URL
+            $file_url = trailingslashit($upload_dir['url']) . $filename;
+            return $file_url;
+        }
+        
+        // Fallback to data URI if file save fails
+        return $full_data_uri;
     }
 
     return null;
@@ -379,7 +403,7 @@ function faap_build_application_html($submission, $recipient = 'admin') {
     if (!empty($signatureSource)) {
         $sigMatch = faap_get_data_image_src($signatureSource);
         if ($sigMatch) {
-            $signatureText = '<div style="margin-top:8px;border:1px solid #cbd5e1;border-radius:4px;padding:10px;background:#f9fafb;"><div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:6px;">Applicant Signature</div><img src="' . esc_url($sigMatch) . '" alt="Signature" style="max-width:280px;max-height:180px;height:auto;display:block;border:1px solid #cbd5e1;border-radius:4px;" /></div>';
+            $signatureText = '<div style="margin-top:8px;border:1px solid #cbd5e1;border-radius:4px;padding:10px;background:#f9fafb;"><div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:6px;">Applicant Signature</div><img src="' . esc_url($sigMatch) . '" alt="Signature" style="max-width:100%;width:280px;height:auto;display:block;border:1px solid #cbd5e1;border-radius:4px;page-break-inside:avoid;" /></div>';
         } else {
             $signatureText = '<div style="margin-top:8px;border:1px solid #cbd5e1;border-radius:4px;padding:10px;background:#f9fafb;"><div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:6px;">Applicant Signature</div><div style="font-size:14px;color:#111827;line-height:1.5;">' . nl2br(esc_html($signatureSource)) . '</div></div>';
         }
@@ -541,68 +565,152 @@ function faap_build_application_pdf_html($submission, $recipient = 'admin') {
 }
 
 function faap_get_full_attestation_terms_html($submission) {
-    return '<div style="margin-bottom:18px;page-break-inside:avoid;">
-        <div style="background:#fefce8;border:1px solid #fde047;border-radius:6px;padding:18px;color:#111827;line-height:1.7;font-size:13px;">
-            <div style="font-weight:700;font-size:15px;margin-bottom:12px;border-bottom:2px solid #fbbf24;padding-bottom:8px;color:#0f172a;">AGREED AND ATTESTED</div>
-            <p style="margin:10px 0;font-size:13px;line-height:1.75;">By signing and submitting this Personal Bank Account Application, the Applicant(s) acknowledge(s), confirm(s), attest(s), represent(s), warrant(s), and irrevocably agree(s) to the following terms and conditions, including all 17 sections of this AGREED AND ATTESTED clause:</p>
+    $full_terms = 'AGREED AND ATTESTED
 
-            <div style="margin-top:12px;"><strong>A. Mandatory Submission Requirements (Strict Compliance)</strong></div>
-            <p style="margin:8px 0;font-size:13px;">The Applicant(s) understand(s), acknowledge(s), and accept(s) that the Bank shall automatically reject, without substantive review, processing, or response, any application submitted without all mandatory items required by the Bank, including, without limitation:</p>
-            <ul style="margin:8px 0 8px 20px;padding:0;font-size:13px;"><li>Full Personal Bank Account opening fee</li><li>Valid proof of payment</li><li>All required documentation, disclosures, and supporting materials specified in the application form</li></ul>
-            <p style="margin:8px 0;font-size:13px;">The Applicant(s) further acknowledge(s) that repeated submission of incomplete, deficient, inaccurate, or non-compliant applications may, at the Bank&#39;s sole and absolute discretion, result in permanent disqualification from reapplying for any banking product or service.</p>
+Details
 
-            <div style="margin-top:12px;"><strong>B. Payment Instructions (Opening Fee)</strong></div>
-            <p style="margin:8px 0;font-size:13px;">The Applicant(s) acknowledge(s), understand(s), and accept(s) that payments made via KTT/TELEX are strictly prohibited and shall not be accepted under any circumstances for payment of the bank account opening fee. Accepted methods of payment for the opening fee are strictly limited to the following:</p>
-            <ul style="margin:8px 0 8px 20px;padding:0;font-size:13px;"><li>SWIFT international wire transfer</li><li>Cryptocurrency transfer to the designated wallet address listed in the application form</li></ul>
-            <p style="margin:8px 0;font-size:13px;">The Applicant(s) further acknowledge(s) that the Application ID must be included in the payment reference field exactly as instructed by the Bank in order to ensure proper and timely allocation of funds. Incomplete, inaccurate, omitted, misdirected, or improperly referenced payments may delay processing and may result in rejection of the application, without liability to the Bank.</p>
+By signing and submitting this Personal Bank Account Application, the Applicant(s) acknowledge(s), confirm(s), attest(s), represent(s), warrant(s), and irrevocably agree(s) to the following:
 
-            <div style="margin-top:12px;"><strong>C. Account Opening Requirements</strong></div>
-            <p style="margin:8px 0;font-size:13px;">The Applicant(s) acknowledge(s), understand(s), and accept(s) that:</p>
-            <ul style="margin:8px 0 8px 20px;padding:0;font-size:13px;"><li>A minimum balance of USD/EUR 5,000 must be maintained in the account at all times.</li><li>Ongoing adherence to the Bank&#39;s account policies, procedures, operational requirements, and compliance standards is required in order to maintain access to banking services.</li><li>If the account balance falls below the minimum required level, the Bank may, in its sole discretion, restrict services, request corrective funding, apply internal controls, and/or place the account under compliance, risk, or administrative review until such deficiency has been remedied.</li></ul>
+A. Mandatory Submission Requirements (Strict Compliance)
 
-            <div style="margin-top:12px;"><strong>D. Finality of Account Type Selection; No Conversion or Reclassification After Opening</strong></div>
-            <p style="margin:8px 0;font-size:13px;">The Applicant(s) hereby acknowledge(s), confirm(s), represent(s), warrant(s), and irrevocably agree(s) that the account category selected in this Application is made solely at the Applicant&#39;s own election, responsibility, and risk, and shall be deemed final for purposes of the submitted Application.</p>
-            <p style="margin:8px 0;font-size:13px;">Once the Application has been submitted, approved by the Bank, and the account has been opened, activated, or established under the selected account category, such account category shall be final and may not thereafter be amended, converted, substituted, re-designated, reclassified, exchanged, or otherwise modified into any other account type, whether in whole or in part.</p>
+The Applicant(s) understand(s), acknowledge(s), and accept(s) that the Bank shall automatically reject, without substantive review, processing, or response, any application submitted without all mandatory items required by the Bank, including, without limitation:
 
-            <div style="margin-top:12px;"><strong>E. Transaction Profile and Ongoing Due Diligence</strong></div>
-            <p style="margin:8px 0;font-size:13px;">The Applicant(s) acknowledge(s) and accept(s) that account activity must at all times reasonably align with the information declared in this application, including source of funds, source of wealth, countries involved, anticipated transactional activity, expected volumes, and maximum transfer values.</p>
-            <p style="margin:8px 0;font-size:13px;">Any material deviation, inconsistency, anomaly, or change in activity profile may require additional verification and may, for compliance, security, legal, reputational, or operational reasons, be delayed, restricted, reviewed, declined, or otherwise subject to enhanced due diligence.</p>
+• Full Personal Bank Account opening fee
 
-            <div style="margin-top:12px;"><strong>F. Accuracy and Authorization</strong></div>
-            <p style="margin:8px 0;font-size:13px;">The Applicant(s) hereby affirm(s), represent(s), warrant(s), and undertake(s) that all information provided in this application is true, accurate, complete, current, and not misleading in any respect. The Applicant(s) hereby authorize(s) the Bank to verify all details, conduct credit, fraud-prevention, identity, sanctions, adverse media, compliance, and risk checks, including AML/KYC screening.</p>
+• Valid proof of payment
 
-            <div style="margin-top:12px;"><strong>G. Account Retention, Record-Keeping, and Banking Relationship</strong></div>
-            <p style="margin:8px 0;font-size:13px;">Account status, retention, restriction, suspension, and closure decisions are governed exclusively by the Bank&#39;s internal Administration, Compliance, Legal, Security, and Risk functions. The Bank retains sole discretion to maintain the account in an administrative, dormant, restricted, archived, or other non-operational status when necessary for record retention, compliance review, or orderly settlement.</p>
+• All required documentation, disclosures, and supporting materials specified in the application form
 
-            <div style="margin-top:12px;"><strong>H. Compliance and Regulatory Framework</strong></div>
-            <p style="margin:8px 0;font-size:13px;">The Applicant(s) acknowledge(s) that the Bank operates under a sovereign license within a diplomatic regulatory framework and that all services and relationships are subject to the Bank&#39;s internal governance, policies, procedures, and risk-management standards.</p>
+The Applicant(s) further acknowledge(s) that repeated submission of incomplete, deficient, inaccurate, or non-compliant applications may, at the Bank\'s sole and absolute discretion, result in permanent disqualification from reapplying for any banking product or service.
 
-            <div style="margin-top:12px;"><strong>I. Data Processing and Privacy</strong></div>
-            <p style="margin:8px 0;font-size:13px;">The Applicant(s) acknowledge(s) that personal data provided in this application is required for evaluation, processing, verification, administration, and compliance. The Bank is authorized to collect, process, transfer, retain, and store such data to satisfy legal, audit, fraud-prevention, cybersecurity, and regulatory requirements.</p>
+B. Payment Instructions (Opening Fee)
 
-            <div style="margin-top:12px;"><strong>J. Additional Standard Banking Provisions</strong></div>
-            <p style="margin:8px 0;font-size:13px;">The Bank may, at its sole discretion, decline, delay, restrict, suspend, refuse, reverse, or not process any application, account service, instruction, transaction, transfer, payment, or product feature where required for compliance, security, risk management, legal protection, incomplete information, unsatisfactory due diligence, or any other legitimate reason.</p>
+The Applicant(s) acknowledge(s), understand(s), and accept(s) that payments made via KTT/TELEX are strictly prohibited and shall not be accepted under any circumstances for payment of the bank account opening fee.
 
-            <div style="margin-top:12px;"><strong>K. Instructions and Authentication</strong></div>
-            <p style="margin:8px 0;font-size:13px;">The Applicant(s) authorize(s) the Bank to act only upon instructions received through approved channels, subject to authentication, verification, and internal review. The Bank may refuse, hold, reverse, or decline instructions that fail verification, appear inconsistent, fraudulent, unusual, high-risk, or non-compliant.</p>
+Accepted methods of payment for the opening fee are strictly limited to the following:
 
-            <div style="margin-top:12px;"><strong>L. Online Banking Security</strong></div>
-            <p style="margin:8px 0;font-size:13px;">The Applicant(s) are solely responsible for safeguarding usernames, passwords, PINs, devices, tokens, wallets, email accounts, mobile numbers, and all other access credentials. Unauthorized access due to negligence or compromised credentials may result in restricted access or other security actions.</p>
+• SWIFT international wire transfer
 
-            <div style="margin-top:12px;"><strong>M. Ongoing Disclosure Duty</strong></div>
-            <p style="margin:8px 0;font-size:13px;">The Applicant(s) must promptly notify the Bank of any material changes to name, address, residence, nationality, tax status, employment, beneficial ownership, source of funds, source of wealth, expected account activity, risk profile, contact information, or legal status.</p>
+• Cryptocurrency transfer to the designated wallet address listed in the application form
 
-            <div style="margin-top:12px;"><strong>N. Prohibited Use</strong></div>
-            <p style="margin:8px 0;font-size:13px;">The account and any linked services must not be used for unlawful, fraudulent, deceptive, abusive, sanctionable, evasive, or prohibited purposes. Any prohibited use is grounds for account restriction, closure, or other action.</p>
+The Applicant(s) further acknowledge(s) that the Application ID must be included in the payment reference field exactly as instructed by the Bank in order to ensure proper and timely allocation of funds. Incomplete, inaccurate, omitted, misdirected, or improperly referenced payments may delay processing and may result in rejection of the application, without liability to the Bank.
 
-            <div style="margin-top:12px;"><strong>O. Indemnity</strong></div>
-            <p style="margin:8px 0;font-size:13px;">The Applicant(s) agree(s) to indemnify, defend, and hold harmless the Bank and its affiliates, officers, directors, employees, agents, and service providers from losses, damages, liabilities, claims, or expenses arising from breach of these terms, inaccurate information, prohibited use of the account, or third-party claims.</p>
+C. Account Opening Requirements
 
-            <div style="margin-top:12px;"><strong>P. Limitation of Liability</strong></div>
-            <p style="margin:8px 0;font-size:13px;">To the maximum extent permitted by law, the Bank shall not be liable for indirect, incidental, consequential, special, or punitive damages arising out of or relating to this Application, account services, transactions, or any related information or documentation.</p>
+The Applicant(s) acknowledge(s), understand(s), and accept(s) that:
 
-            <div style="margin-top:12px;"><strong>Q. Severability, Force Majeure, and Governing Terms</strong></div>
-            <p style="margin:8px 0;font-size:13px;">If any provision of this AGREED AND ATTESTED section is found invalid or unenforceable, the remaining provisions remain in full force. The Bank may be excused from performance due to force majeure events. This Application is subject to the Bank&#39;s governing terms, policies, and applicable internal standards.</p>
+• A minimum balance of USD/EUR 5,000 must be maintained in the account at all times.
+
+• Ongoing adherence to the Bank\'s account policies, procedures, operational requirements, and compliance standards is required in order to maintain access to banking services.
+
+• If the account balance falls below the minimum required level, the Bank may, in its sole discretion, restrict services, request corrective funding, apply internal controls, and/or place the account under compliance, risk, or administrative review until such deficiency has been remedied to the Bank\'s satisfaction.
+
+D. Finality of Account Type Selection; No Conversion or Reclassification After Opening
+
+The Applicant(s) hereby acknowledge(s), confirm(s), represent(s), warrant(s), and irrevocably agree(s) that the account category selected in this Application is made solely at the Applicant\'s own election, responsibility, and risk, and shall be deemed final for purposes of the submitted Application.
+
+The Applicant(s) further acknowledge(s) and accept(s) that, once the Application has been submitted, approved by the Bank, and the account has been opened, activated, or established under the selected account category, such account category shall be final and may not thereafter be amended, converted, substituted, re-designated, reclassified, exchanged, or otherwise modified into any other account type, whether in whole or in part.
+
+Without limitation, this restriction applies to any selection made by the Applicant, including, but not limited to, a Savings Account, Numbered Account, Cryptocurrency Account, Custody Account, or any other account class, structure, or product designation offered by the Bank from time to time.
+
+E. Transaction Profile and Ongoing Due Diligence
+
+The Applicant(s) acknowledge(s) and accept(s) that:
+
+• Account activity must at all times reasonably align with the information declared in this application, including, without limitation, source of funds, source of wealth, countries involved, anticipated transactional activity, expected transaction volumes, and maximum transfer values.
+
+• Any material deviation, inconsistency, anomaly, or change in activity profile may require additional verification and may, for compliance, security, legal, reputational, or operational reasons, be delayed, restricted, reviewed, declined, or otherwise subject to enhanced due diligence.
+
+• The Applicant(s) agree(s) to provide such additional documentation, declarations, evidence, or clarifications as the Bank may request at any time in order to satisfy initial and ongoing AML/KYC, sanctions, fraud prevention, and internal risk-management requirements.
+
+F. Accuracy and Authorization
+
+The Applicant(s) hereby affirm(s), represent(s), warrant(s), and undertake(s) that:
+
+• All information provided in this application is true, accurate, complete, current, and not misleading in any respect.
+
+• The information is submitted for the purpose of establishing a service relationship with Prominence Bank ("the Bank") under the Terms and Conditions disclosed prior to submission and accepted by the Applicant(s) upon signature and/or submission of this Application.
+
+The Applicant(s) hereby authorize(s) the Bank, without further notice except where required by applicable law or the Bank\'s governing framework, to:
+
+• Verify all details provided in this application and in any supporting documentation.
+
+• Conduct credit, fraud-prevention, identity, sanctions, adverse media, compliance, and risk checks, including AML/KYC screening and consultation with credit-risk information offices, databases, service providers, and entities affiliated with the Bank, where permitted.
+
+• Request additional information or documentation at any time in connection with onboarding, account opening, risk review, or ongoing due diligence.
+
+• Allocate, charge, and debit any applicable verification, compliance, administrative, legal, investigation, service-provider, and third-party processing costs to the Applicant\'s account(s), where contractually permitted and/or required.
+
+G. Account Retention, Record-Keeping, and Banking Relationship (ETMO Framework)
+
+1) Bank-governed closure and retention. Account status, retention, restriction, suspension, and any closure decision are governed exclusively by the Bank\'s internal Administration, Compliance, Legal, Security, and Risk functions and may only be implemented following internal review.
+
+2) Account retention, record-keeping, and client-initiated closure restrictions. The Applicant(s) acknowledge(s) that, due to the Bank\'s regulatory obligations, auditability requirements, institutional record-retention duties, and long-term compliance commitments, accounts are not closed solely upon a client\'s request. If the Applicant(s) wish(es) to terminate the relationship, the Bank may consider such request in accordance with its internal policies and procedures; however, the Bank retains the sole and absolute discretion to maintain the account in an administrative, dormant, restricted, archived, or other non-operational status where necessary to preserve records, satisfy retention obligations, complete compliance review, legal assessment, or orderly settlement.
+
+3) ETMO diplomatic framework. Account relationships are administered under the sovereign diplomatic framework of the Ecclesiastical and Temporal Missionary Order (ETMO), with reference to protections under the Vienna Convention on Diplomatic Relations (1961) and relevant bilateral and multilateral treaties, as applicable to the Bank\'s institutional framework and operations.
+
+H. Compliance and Regulatory Framework
+
+The Applicant(s) acknowledge(s), understand(s), and accept(s) that:
+
+• Diplomatic Regulatory Framework and Governance. The Bank operates under a sovereign license within a diplomatic regulatory framework, and all accounts, services, products, operations, and client relationships are subject to the Bank\'s internal governance, legal structure, compliance standards, risk-management framework, policies, and procedures.
+
+• AML/KYC and Ongoing Obligations. The Applicant(s) must comply fully and promptly with all onboarding and ongoing AML/KYC, sanctions, source-of-funds, source-of-wealth, identity verification, and monitoring requirements, including the obligation to provide accurate information and supporting documentation whenever requested by the Bank.
+
+• Internationally Aligned Standards. The Bank applies internationally aligned compliance and risk standards, including FATF-based AML controls, sanctions screening, and enhanced due diligence, and may apply monitoring, restrictions, manual review, account limitations, and other control measures whenever required for compliance, security, fraud prevention, legal protection, operational integrity, or institutional risk management.
+
+I. Data Processing and Privacy
+
+The Applicant(s) acknowledge(s), understand(s), and accept(s) that:
+
+• Personal data and related information provided by the Applicant(s) are required for the purposes of evaluating, processing, administering, verifying, and managing this application and any requested or existing banking services.
+
+• The Bank is authorized to collect, process, record, verify, analyze, transfer, retain, and store such data in order to facilitate present and future transactions and to satisfy legal, compliance, operational, audit, fraud-prevention, cybersecurity, and security obligations.
+
+• Such data may be stored, controlled, overseen, and processed by the Bank as data controller and/or by authorized service providers, processors, affiliates, contractors, or agents acting on the Bank\'s behalf and under its instructions, subject to applicable law and internal governance procedures.
+
+J. Additional Standard Banking Provisions (General)
+
+The Applicant(s) further acknowledge(s), accept(s), and irrevocably agree(s) to the following provisions, each of which forms part of the binding service agreement with the Bank:
+
+1. Bank discretion and service availability - The Bank may, at its sole and absolute discretion, decline, delay, restrict, suspend, refuse, reverse, or not process any application, account service, instruction, transaction, transfer, payment, or product feature where required for compliance, security, risk management, operational integrity, legal protection, incomplete information, unsatisfactory due diligence, or any other reason permitted under the Bank\'s governing framework.
+
+2. Transaction controls, holds, and third parties - The Bank may apply manual review, verification holds, enhanced due diligence, temporary restrictions, reserve requirements, and other internal controls whenever deemed necessary for AML/KYC, sanctions, fraud prevention, cybersecurity, legal review, operational risk, or institutional protection.
+
+3. Fees, charges, and third-party costs - The Applicant(s) agree(s) that all Bank fees, service charges, intermediary or correspondent charges, network fees, blockchain fees, custody fees, FX conversion costs or spreads, investigation costs, legal costs, compliance costs, and third-party charges may be debited, deducted, offset, withheld, or otherwise collected in accordance with the Bank\'s fee schedule, pricing policies, or applicable procedures.
+
+4. Foreign exchange - Where currency conversion is required, authorized, or incidental to processing, the Applicant(s) authorize(s) the Bank to apply the Bank\'s prevailing exchange rate, pricing methodology, or conversion spread in effect at the time of execution, including any applicable margin, fee, spread, or operational cost.
+
+5. Statements, records, and reporting deadlines - The Bank\'s books, records, systems, logs, data extracts, electronic records, transaction histories, and operational records shall constitute prima facie evidence of account activity and instructions unless proven otherwise by compelling evidence. The Applicant(s) agree(s) to review all statements, notifications, and account activity promptly and to report any alleged unauthorized transaction, discrepancy, omission, or error within the time periods required by the Bank\'s policies and procedures.
+
+6. Instructions and authentication - The Applicant(s) authorize(s) the Bank to act upon instructions received through approved channels, subject to authentication, verification, and internal review requirements. The Bank may refuse, hold, reverse, or decline any instruction that fails verification, appears inconsistent, incomplete, fraudulent, unusual, high-risk, non-compliant, or otherwise unacceptable in the Bank\'s sole judgment.
+
+7. Online banking and security responsibility - The Applicant(s) are solely responsible for safeguarding usernames, passwords, PINs, devices, tokens, wallets, email accounts, mobile numbers, authentication credentials, and all other access methods or security elements associated with the account. The Applicant(s) must notify the Bank immediately of any suspected compromise, phishing incident, unauthorized use, attempted intrusion, or other security concern.
+
+8. Electronic communications and notices - The Applicant(s) consent(s) to receive notices, disclosures, statements, security alerts, operational notices, contractual communications, and all other communications electronically using the contact details provided to the Bank. Notices shall be deemed delivered when sent to the last email address, telephone number, mailing address, portal, or other contact information on file.
+
+9. Ongoing disclosure duty - The Applicant(s) must promptly notify the Bank of any material change in information or circumstances, including, without limitation, changes to name, address, residence, nationality, tax status, employment, beneficial ownership, source of funds, source of wealth, expected account activity, risk profile, contact information, or legal status.
+
+10. Prohibited use - The account and any related services must not be used, directly or indirectly, for any unlawful, fraudulent, deceptive, abusive, sanctionable, evasive, or prohibited purpose, including, without limitation, money laundering, terrorist financing, sanctions evasion, fraud, cybercrime, unlawful gambling, unauthorized securities activity, or any activity that may expose the Bank to legal, regulatory, reputational, financial, operational, or security risk.
+
+11. Set-off and recovery - To the maximum extent permitted under the Bank\'s governing framework, the Applicant(s) authorize(s) the Bank to debit, withhold, reserve, freeze, set off, net, or otherwise recover from any balance, account, proceeds, or funds held with the Bank any amount owed to the Bank, including fees, charges, costs, negative balances, reversals, liabilities, indemnities, expenses, investigations, losses, and obligations of any kind.
+
+12. Indemnity - The Applicant(s) agree(s) to indemnify, defend, and hold harmless the Bank, its officers, directors, employees, agents, affiliates, delegates, correspondents, service providers, and contractors from and against any and all losses, damages, liabilities, penalties, costs, claims, demands, actions, proceedings, expenses, and disbursements arising out of or relating to: (i) breach of these terms or of the Bank\'s policies; (ii) inaccurate, false, incomplete, or misleading information provided by the Applicant(s); (iii) prohibited, unlawful, or high-risk use of the account; or (iv) third-party claims arising from the Applicant\'s instructions, conduct, or transactions.
+
+13. Limitation of liability - To the maximum extent permitted under the Bank\'s governing framework, the Bank shall not be liable for any indirect, incidental, consequential, special, exemplary, or punitive damages, or for any loss of profit, loss of opportunity, loss of use, reputational harm, market loss, or third-party loss, whether arising in contract, tort, equity, statute, or otherwise.
+
+14. Force majeure - The Bank shall not be responsible or liable for any delay, interruption, suspension, or failure in performance caused directly or indirectly by events beyond its reasonable control, including, without limitation, war, civil unrest, riots, labor disputes, strikes, natural disasters, pandemics, cyberattacks, hacking, telecommunications failures, system outages, network failures, correspondent disruptions, sanctions changes, or legal mandates.
+
+15. Severability; no waiver; entire agreement; updates - If any provision of this Application or related terms is held to be invalid, illegal, or unenforceable, the remaining provisions shall remain in full force and effect. The Bank\'s failure or delay in enforcing any right, remedy, term, or provision shall not constitute a waiver thereof. This Application, together with the Bank\'s Terms and Conditions, fee schedules, disclosures, policies, procedures, and onboarding documents accepted by the Applicant(s), constitutes the entire agreement between the parties. The Bank may update, revise, supplement, or amend its policies, procedures, operational requirements, or service conditions from time to time, and continued use of the account or services shall constitute acceptance of such changes.
+
+16. Waiver of claims based on misunderstanding; dispute handling; reservation of non-waivable rights - The Applicant(s) confirm(s) that they have carefully read and understood this Application, have had the opportunity to ask questions, obtain clarification, and seek independent professional advice prior to signing or submitting it. To the fullest extent permitted by law, the Applicant(s) expressly waive(s) any right to assert, pursue, or initiate claims or civil/commercial proceedings against the Bank on the basis of alleged misunderstanding, inadequate explanation, misinterpretation, oversight, or failure to read or review the terms of this Application.
+
+17. No-reliance; opportunity to seek advice - The Applicant(s) confirm(s) that they have read this Application in full, have had adequate opportunity to ask questions and seek independent legal, tax, financial, and other professional advice, and understand(s) that account approval is entirely discretionary and subject to the Bank\'s internal onboarding, compliance, and risk criteria.';
+
+    return '<div style="margin-bottom:18px;page-break-inside:auto;">
+        <div style="background:#fefce8;border:1px solid #fde047;border-radius:6px;padding:18px;color:#111827;line-height:1.6;font-size:12px;white-space:pre-wrap;word-wrap:break-word;overflow-wrap:break-word;">
+            <div style="font-weight:700;font-size:14px;margin-bottom:12px;border-bottom:2px solid #fbbf24;padding-bottom:8px;color:#0f172a;">AGREED AND ATTESTED - FULL TERMS</div>
+            ' . nl2br(esc_html($full_terms)) . '
         </div>
     </div>';
 }

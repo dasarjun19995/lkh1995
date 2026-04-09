@@ -446,6 +446,58 @@ The Applicant(s) confirm(s) that they have carefully read and understood this Ap
 The Applicant(s) confirm(s) that they have read this Application in full, have had adequate opportunity to ask questions and seek independent legal, tax, financial, and other professional advice, and understand(s) that account approval is entirely discretionary and subject to the Bank's internal onboarding, compliance, and risk criteria. Nothing in this Application shall be interpreted as excluding, restricting, or limiting any mandatory rights available under applicable law.
 `;
 
+// Validation helper functions
+const isValidEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+const getDateValidationError = (field: any, value: string): string => {
+  if (!value) return "";
+  
+  const selectedDate = new Date(value);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  if (field.validation?.notFutureDates && selectedDate > today) {
+    return "Date cannot be in the future";
+  }
+  
+  if (field.validation?.notExpiredDates && selectedDate < today) {
+    return "Passport has expired";
+  }
+  
+  return "";
+};
+
+const getFieldError = (field: any, value: string, allData: any): string => {
+  if (!value && field.required) {
+    return "This field is required";
+  }
+  
+  if (!value) return "";
+  
+  // Email validation
+  if (field.type === "email" && !isValidEmail(value)) {
+    return "Please enter a valid email address";
+  }
+  
+  // Email match validation
+  if (field.validation?.matchField) {
+    const matchValue = allData[field.validation.matchField];
+    if (value && matchValue && value !== matchValue) {
+      return `Email addresses do not match`;
+    }
+  }
+  
+  // Date validation
+  if (field.type === "date") {
+    return getDateValidationError(field, value);
+  }
+  
+  return "";
+};
+
 export function StepRenderer() {
   const { currentStep, data, steps, isLoading, updateData } = useForm();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -979,51 +1031,75 @@ export function StepRenderer() {
         <p className="text-slate-400 text-[13px] font-normal">{activeStepData.description}</p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {activeStepData.fields.map((field: any) => (
+        {activeStepData.fields.map((field: any) => {
+          const fieldError = getFieldError(field, data[field.name] || "", data);
+          return (
           <div key={field.id} className={cn("space-y-2", field.width === 'half' ? '' : 'md:col-span-2')}>
             <Label htmlFor={field.name} className="text-sm font-bold uppercase tracking-wider flex items-center gap-2">
               {field.label}
               {field.required && <span className="text-red-500">*</span>}
             </Label>
             {field.type === 'text' && (
-              <Input
-                id={field.name}
-                type="text"
-                value={data[field.name] || ''}
-                onChange={(e) => updateData({ [field.name]: e.target.value })}
-                className="py-6 border-2 focus-visible:ring-accent"
-                required={field.required}
-              />
+              <div className="space-y-1">
+                <Input
+                  id={field.name}
+                  type="text"
+                  value={data[field.name] || ''}
+                  onChange={(e) => {
+                    let value = e.target.value;
+                    // Apply numeric-only filtering if specified
+                    if (field.numericOnly) {
+                      value = value.replace(/[^0-9+\-().\s]/g, '');
+                    }
+                    updateData({ [field.name]: value });
+                  }}
+                  className={cn("py-6 border-2 focus-visible:ring-accent", fieldError && "border-red-500")}
+                  required={field.required}
+                  placeholder={field.placeholder}
+                />
+                {fieldError && <p className="text-red-500 text-xs">{fieldError}</p>}
+              </div>
             )}
             {field.type === 'email' && (
-              <Input
-                id={field.name}
-                type="email"
-                value={data[field.name] || ''}
-                onChange={(e) => updateData({ [field.name]: e.target.value })}
-                className="py-6 border-2 focus-visible:ring-accent"
-                required={field.required}
-              />
+              <div className="space-y-1">
+                <Input
+                  id={field.name}
+                  type="email"
+                  value={data[field.name] || ''}
+                  onChange={(e) => updateData({ [field.name]: e.target.value })}
+                  className={cn("py-6 border-2 focus-visible:ring-accent", fieldError && "border-red-500")}
+                  required={field.required}
+                  placeholder={field.placeholder}
+                />
+                {fieldError && <p className="text-red-500 text-xs">{fieldError}</p>}
+              </div>
             )}
             {field.type === 'number' && (
-              <Input
-                id={field.name}
-                type="number"
-                value={data[field.name] || ''}
-                onChange={(e) => updateData({ [field.name]: e.target.value })}
-                className="py-6 border-2 focus-visible:ring-accent"
-                required={field.required}
-              />
+              <div className="space-y-1">
+                <Input
+                  id={field.name}
+                  type="number"
+                  value={data[field.name] || ''}
+                  onChange={(e) => updateData({ [field.name]: e.target.value })}
+                  className={cn("py-6 border-2 focus-visible:ring-accent", fieldError && "border-red-500")}
+                  required={field.required}
+                  placeholder={field.placeholder}
+                />
+                {fieldError && <p className="text-red-500 text-xs">{fieldError}</p>}
+              </div>
             )}
             {field.type === 'date' && (
-              <Input
-                id={field.name}
-                type="date"
-                value={data[field.name] || ''}
-                onChange={(e) => updateData({ [field.name]: e.target.value })}
-                className="py-6 border-2 focus-visible:ring-accent"
-                required={field.required}
-              />
+              <div className="space-y-1">
+                <Input
+                  id={field.name}
+                  type="date"
+                  value={data[field.name] || ''}
+                  onChange={(e) => updateData({ [field.name]: e.target.value })}
+                  className={cn("py-6 border-2 focus-visible:ring-accent", fieldError && "border-red-500")}
+                  required={field.required}
+                />
+                {fieldError && <p className="text-red-500 text-xs">{fieldError}</p>}
+              </div>
             )}
             {field.type === 'select' && (
               <select
@@ -1065,7 +1141,8 @@ export function StepRenderer() {
               </div>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

@@ -171,6 +171,7 @@ function faap_get_uploaded_file_path($url) {
 
 function faap_get_data_image_src($value) {
     if (!is_string($value)) {
+        error_log('FAAP: faap_get_data_image_src called with non-string value: ' . gettype($value));
         return null;
     }
 
@@ -179,29 +180,53 @@ function faap_get_data_image_src($value) {
         $full_data_uri = $matches[1];
         $image_type = $matches[2];
         $image_data = $matches[3];
-        
+
+        error_log('FAAP: Processing signature - type: ' . $image_type . ', data length: ' . strlen($image_data));
+
         // Get upload directory
         $upload_dir = wp_upload_dir();
         if (!isset($upload_dir['path'])) {
+            error_log('FAAP: Upload directory not available, falling back to data URI');
             return $full_data_uri; // Fallback to data URI if upload dir not available
         }
-        
-        // Create a unique filename
-        $filename = 'signature-' . uniqid() . '.' . (strpos($image_type, 'png') !== false ? 'png' : 'jpg');
+
+        // Create a unique filename - force PNG format for better compatibility
+        $filename = 'signature-' . uniqid() . '.png';
         $file_path = trailingslashit($upload_dir['path']) . $filename;
-        
+
+        error_log('FAAP: Attempting to save signature to: ' . $file_path . ' (directory exists: ' . (is_dir(dirname($file_path)) ? 'YES' : 'NO') . ')');
+
+        // Ensure the faap directory exists
+        $faap_dir = trailingslashit($upload_dir['path']) . 'faap';
+        if (!is_dir($faap_dir)) {
+            mkdir($faap_dir, 0755, true);
+            error_log('FAAP: Created faap directory: ' . $faap_dir);
+        }
+
+        // Save to faap subdirectory for better organization
+        $file_path = trailingslashit($faap_dir) . $filename;
+
+        error_log('FAAP: Attempting to save signature to: ' . $file_path);
+
         // Decode and save the image
         $decoded_image = base64_decode($image_data, true);
-        if ($decoded_image !== false && file_put_contents($file_path, $decoded_image)) {
-            // Return the file URL
-            $file_url = trailingslashit($upload_dir['url']) . $filename;
-            return $file_url;
+        if ($decoded_image === false) {
+            error_log('FAAP: Base64 decode failed');
+            return $full_data_uri; // Fallback to data URI
         }
-        
-        // Fallback to data URI if file save fails
-        return $full_data_uri;
+
+        if (file_put_contents($file_path, $decoded_image)) {
+            // Return the file URL
+            $file_url = trailingslashit($upload_dir['url']) . 'faap/' . $filename;
+            error_log('FAAP: Signature saved successfully to: ' . $file_url . ' (file exists: ' . (file_exists($file_path) ? 'YES' : 'NO') . ', size: ' . filesize($file_path) . ' bytes)');
+            return $file_url;
+        } else {
+            error_log('FAAP: Failed to save signature file to: ' . $file_path . ' (permissions: ' . substr(sprintf('%o', fileperms(dirname($file_path))), -4) . ')');
+            return $full_data_uri; // Fallback to data URI
+        }
     }
 
+    error_log('FAAP: No base64 data URI found in signature value');
     return null;
 }
 
@@ -366,7 +391,6 @@ function faap_build_application_html($submission, $recipient = 'admin') {
     $rows = '';
     $excluded = ['emailSubject', 'emailBody', 'applicationData', 'mainDocumentFile', 'paymentProofFile', 'companyRegFile', 'signatureImage', 'signature', 'attestation', 'submittedAt', 'status', 'type', 'accountTypeId', 'applicationId', 'passportPhoto', 'passportPhotoFile', 'paymentProof'];
 
-    $attestationHtml = '';
     $signatureSource = '';
     $signatureText = '';
 
@@ -388,6 +412,7 @@ function faap_build_application_html($submission, $recipient = 'admin') {
         }
         if (!empty($att['signatureImage']) && is_string($att['signatureImage'])) {
             $signatureSource = $att['signatureImage'];
+            error_log('FAAP: Found signature in attestation.signatureImage, length: ' . strlen($signatureSource));
         }
 
         $attestationHtml = '<div style="background:#f9fafb;border:1px solid #e2e8f0;border-radius:4px;padding:8px;margin-bottom:8px;font-size:13px;"><div style="font-weight:700;margin-bottom:4px;color:#0f172a;font-size:13px;">Attestation & Signature</div>' . implode('', $attestationLines);
@@ -395,17 +420,28 @@ function faap_build_application_html($submission, $recipient = 'admin') {
 
     if (empty($signatureSource) && !empty($data['signatureImage']) && is_string($data['signatureImage'])) {
         $signatureSource = $data['signatureImage'];
+        error_log('FAAP: Found signature in data.signatureImage, length: ' . strlen($signatureSource));
     }
     if (empty($signatureSource) && !empty($data['signature']) && is_string($data['signature'])) {
         $signatureSource = $data['signature'];
+        error_log('FAAP: Found signature in data.signature, length: ' . strlen($signatureSource));
     }
 
     if (!empty($signatureSource)) {
+        error_log('FAAP: Processing signature for PDF - source length: ' . strlen($signatureSource));
         $sigMatch = faap_get_data_image_src($signatureSource);
-        if ($sigMatch) {
+        if ($sigMatch && !preg_match('/^data:image/', $sigMatch)) {
+            // File URL returned - use it
+            error_log('FAAP: Using file URL for signature: ' . $sigMatch);
             $signatureText = '<div style="margin-top:8px;border:1px solid #cbd5e1;border-radius:4px;padding:10px;background:#f9fafb;"><div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:6px;">Applicant Signature</div><img src="' . esc_url($sigMatch) . '" alt="Signature" style="max-width:100%;width:280px;height:auto;display:block;border:1px solid #cbd5e1;border-radius:4px;page-break-inside:avoid;" /></div>';
+        } elseif (preg_match('/^data:image\/[a-zA-Z]+;base64,/', $signatureSource)) {
+            // Base64 data URI - use it directly with better styling
+            error_log('FAAP: Using base64 data URI for signature');
+            $signatureText = '<div style="margin-top:8px;border:1px solid #cbd5e1;border-radius:4px;padding:10px;background:#f9fafb;"><div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:6px;">Applicant Signature</div><img src="' . esc_attr($signatureSource) . '" alt="Signature" style="max-width:100%;width:280px;height:auto;display:block;border:1px solid #cbd5e1;border-radius:4px;page-break-inside:avoid;" /></div>';
         } else {
-            $signatureText = '<div style="margin-top:8px;border:1px solid #cbd5e1;border-radius:4px;padding:10px;background:#f9fafb;"><div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:6px;">Applicant Signature</div><div style="font-size:14px;color:#111827;line-height:1.5;">' . nl2br(esc_html($signatureSource)) . '</div></div>';
+            // Fallback to text
+            error_log('FAAP: Signature conversion failed, using fallback text');
+            $signatureText = '<div style="margin-top:8px;border:1px solid #cbd5e1;border-radius:4px;padding:10px;background:#f9fafb;"><div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:6px;">Applicant Signature</div><div style="font-size:14px;color:#111827;line-height:1.5;">[Signature data not available]</div></div>';
         }
     }
 
@@ -854,12 +890,20 @@ function faap_generate_application_pdf($submission, $recipient = 'admin') {
 
     $wkhtml = trim(shell_exec('which wkhtmltopdf 2>/dev/null'));
     if ($wkhtml) {
-        $escaped = escapeshellarg($wkhtml) . ' --enable-local-file-access ' . escapeshellarg($html_file) . ' ' . escapeshellarg($pdf_path) . ' 2>&1';
+        error_log('FAAP: wkhtmltopdf found at: ' . $wkhtml);
+        $escaped = escapeshellarg($wkhtml) . ' --enable-local-file-access --disable-smart-shrinking --page-size A4 --margin-top 15mm --margin-bottom 15mm --margin-left 15mm --margin-right 15mm --encoding UTF-8 --enable-javascript --javascript-delay 1000 --load-error-handling ignore --load-media-error-handling ignore ' . escapeshellarg($html_file) . ' ' . escapeshellarg($pdf_path) . ' 2>&1';
+        error_log('FAAP: Running wkhtmltopdf command: ' . $escaped);
         $out = shell_exec($escaped);
+        error_log('FAAP: wkhtmltopdf output: ' . $out);
         if (file_exists($pdf_path) && filesize($pdf_path) > 0) {
+            error_log('FAAP: PDF generated successfully, size: ' . filesize($pdf_path) . ' bytes');
             @unlink($html_file);
             return $pdf_path;
+        } else {
+            error_log('FAAP: PDF generation failed - file exists: ' . (file_exists($pdf_path) ? 'YES' : 'NO') . ', size: ' . (file_exists($pdf_path) ? filesize($pdf_path) : 'N/A'));
         }
+    } else {
+        error_log('FAAP: wkhtmltopdf not found in PATH');
     }
 
     if (function_exists('proc_open')) {

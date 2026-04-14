@@ -9,10 +9,14 @@ export type FormField = {
   options?: string[];
   width?: "full" | "half";
   numericOnly?: boolean;
+  readOnly?: boolean;
+  autoPopulateCurrentDate?: boolean;
+  minAge?: number;
   validation?: {
     notFutureDates?: boolean;
     notExpiredDates?: boolean;
     matchField?: string;
+    compareField?: { fieldName: string; operator: "before" | "after" };
   };
 };
 
@@ -34,12 +38,12 @@ export const PERSONAL_STEPS: FormStep[] = [
       { id: "f2", label: "First name *", name: "firstName", type: "text", width: "half", required: true },
       { id: "f3", label: "Last name *", name: "lastName", type: "text", width: "half", required: true },
       { id: "f4", label: "Middle name", name: "middleName", type: "text", width: "half" },
-      { id: "f5", label: "Date of birth *", name: "dob", type: "date", width: "half", required: true },
+      { id: "f5", label: "Date of birth *", name: "dob", type: "date", width: "half", required: true, validation: { notFutureDates: true }, minAge: 18 },
       { id: "f1", label: "Place of birth *", name: "pob", type: "text", width: "half", required: true },
       { id: "f6", label: "Nationality *", name: "nationality", type: "text", width: "half", required: true },
       { id: "f7", label: "Passport/ID No. *", name: "passportNo", type: "text", width: "half", required: true },
-      { id: "f8", label: "Passport/ID date of issue *", name: "passportIssue", type: "date", width: "half", required: true, validation: { notFutureDates: true } },
-      { id: "f9", label: "Passport/ID Expiration date *", name: "passportExpiry", type: "date", width: "half", required: true, validation: { notExpiredDates: true } },
+      { id: "f8", label: "Passport/ID date of issue *", name: "passportIssue", type: "date", width: "half", required: true, validation: { notFutureDates: true, compareField: { fieldName: "passportExpiry", operator: "before" } } },
+      { id: "f9", label: "Passport/ID Expiration date *", name: "passportExpiry", type: "date", width: "half", required: true },
       { id: "f10", label: "Country of issue *", name: "passportCountry", type: "text", width: "half", required: true },
       { id: "f11", label: "Telephone No.", name: "phone", type: "text", width: "half", numericOnly: true },
       { id: "f12", label: "Fax No.", name: "fax", type: "text", width: "half", numericOnly: true },
@@ -72,8 +76,8 @@ export const PERSONAL_STEPS: FormStep[] = [
       { id: "f23", label: "Main countries from which you will receive transfers", name: "countriesFrom", type: "text", width: "full" },
       { id: "f24", label: "Estimated number of outgoing transfers per month", name: "outgoingCount", type: "number", width: "half" },
       { id: "f25", label: "Estimated number of incoming transfers per month", name: "incomingCount", type: "number", width: "half" },
-      { id: "f26", label: "Average value for each transfer", name: "avgValue", type: "text", width: "half" },
-      { id: "f27", label: "Maximum value of each transfer", name: "maxValue", type: "text", width: "half" },
+      { id: "f26", label: "Average value for each transfer", name: "avgValue", type: "text", width: "half", numericOnly: true },
+      { id: "f27", label: "Maximum value of each transfer", name: "maxValue", type: "text", width: "half", numericOnly: true },
       { id: "f28", label: "Currency of initial funding", name: "fundingCurrency", type: "text", width: "half" },
     ]
   },
@@ -83,7 +87,7 @@ export const PERSONAL_STEPS: FormStep[] = [
     title: "WEALTH",
     description: "Source of initial funding:",
     fields: [
-      { id: "f29", label: "Value of Initial Funding", name: "fundingValue", type: "text", width: "half" },
+      { id: "f29", label: "Value of Initial Funding", name: "fundingValue", type: "text", width: "half", numericOnly: true },
       { id: "f30", label: "Originating Bank Name", name: "fundingBank", type: "text", width: "half" },
       { id: "f31", label: "Originating Bank Address", name: "fundingBankAddr", type: "text", width: "full" },
       { id: "f32", label: "Account Name", name: "fundingAccName", type: "text", width: "half" },
@@ -98,7 +102,7 @@ export const PERSONAL_STEPS: FormStep[] = [
     title: "BANKING",
     description: "Bank Account:",
     fields: [
-      { id: "f36", label: "Account currency *", name: "accCurrency", type: "text", width: "half", required: true },
+      { id: "f36", label: "Account currency *", name: "accCurrency", type: "select", options: ["EUR", "USD"], width: "half", required: true },
       { id: "f37", label: "Enter an account name for your reference (optional ):", name: "accRef", type: "text", width: "half" },
     ]
   },
@@ -437,7 +441,7 @@ export const BUSINESS_STEPS: FormStep[] = [
       { id: "bf7", label: "Country *", name: "country", type: "text", width: "half", required: true },
       { id: "bf8", label: "Telephone No. *", name: "phone", type: "text", width: "half", required: true, numericOnly: true },
       { id: "bf9", label: "Company registration No.", name: "regNumber", type: "text", width: "half" },
-      { id: "bf10", label: "Date of incorporation *", name: "incorporationDate", type: "date", width: "half", required: true },
+      { id: "bf10", label: "Date of incorporation *", name: "incorporationDate", type: "date", width: "half", required: true, validation: { notFutureDates: true } },
       { id: "bf11", label: "Tax ID/VAT Number", name: "taxId", type: "text", width: "half" },
       { id: "bf12", label: "Company Website", name: "website", type: "text", width: "half" },
       { id: "bf13", label: "Company Email *", name: "email", type: "email", width: "half", required: true },
@@ -454,8 +458,8 @@ export const BUSINESS_STEPS: FormStep[] = [
       { id: "bf16", label: "Main countries (From)", name: "countriesFrom", type: "text", width: "half", required: true },
       { id: "bf17", label: "Estimated Outgoing Transfers / Month", name: "outgoingCount", type: "number", width: "half" },
       { id: "bf18", label: "Estimated Incoming Transfers / Month", name: "incomingCount", type: "number", width: "half" },
-      { id: "bf19", label: "Average Value for each Transfer", name: "avgValue", type: "text", width: "half" },
-      { id: "bf20", label: "Maximum Value for each Transfer", name: "maxValue", type: "text", width: "half" },
+      { id: "bf19", label: "Average Value for each Transfer", name: "avgValue", type: "text", width: "half", numericOnly: true },
+      { id: "bf20", label: "Maximum Value for each Transfer", name: "maxValue", type: "text", width: "half", numericOnly: true },
     ]
   },
   {
@@ -475,8 +479,8 @@ export const BUSINESS_STEPS: FormStep[] = [
       { id: "bf24_cty", label: "Country", name: "signatoryCountry", type: "text", width: "half", required: true },
       { id: "bf25", label: "Nationality", name: "signatoryNationality", type: "text", width: "half", required: true },
       { id: "bf26", label: "Passport/ID No.", name: "signatoryPassport", type: "text", width: "half", required: true },
-      { id: "bf27", label: "Passport Issue Date", name: "signatoryPassportIssue", type: "date", width: "half", required: true, validation: { notFutureDates: true } },
-      { id: "bf28", label: "Passport Expiration Date", name: "signatoryPassportExpiry", type: "date", width: "half", required: true, validation: { notExpiredDates: true } },
+      { id: "bf27", label: "Passport Issue Date", name: "signatoryPassportIssue", type: "date", width: "half", required: true, validation: { notFutureDates: true, compareField: { fieldName: "signatoryPassportExpiry", operator: "before" } } },
+      { id: "bf28", label: "Passport Expiration Date", name: "signatoryPassportExpiry", type: "date", width: "half", required: true },
       { id: "bf29", label: "Signatory Email", name: "signatoryEmail", type: "email", width: "half", required: true },
       { id: "bf29_c", label: "Confirm Signatory Email", name: "signatoryEmailConfirm", type: "email", width: "half", required: true, validation: { matchField: "signatoryEmail" } },
       { id: "bf30", label: "Mobile No.", name: "signatoryPhone", type: "text", width: "half", required: true, numericOnly: true },
@@ -494,8 +498,8 @@ export const BUSINESS_STEPS: FormStep[] = [
       { id: "bf32", label: "Director Last Name", name: "directorLastName", type: "text", width: "half", required: true },
       { id: "bf33", label: "Director Nationality", name: "directorNationality", type: "text", width: "half", required: true },
       { id: "bf34", label: "Passport/ID No.", name: "directorPassport", type: "text", width: "half", required: true },
-      { id: "bf34_i", label: "Passport Issue Date", name: "directorPassportIssue", type: "date", width: "half", required: true, validation: { notFutureDates: true } },
-      { id: "bf34_e", label: "Passport Expiration Date", name: "directorPassportExpiry", type: "date", width: "half", required: true, validation: { notExpiredDates: true } },
+      { id: "bf34_i", label: "Passport Issue Date", name: "directorPassportIssue", type: "date", width: "half", required: true, validation: { notFutureDates: true, compareField: { fieldName: "directorPassportExpiry", operator: "before" } } },
+      { id: "bf34_e", label: "Passport Expiration Date", name: "directorPassportExpiry", type: "date", width: "half", required: true },
       { id: "bf35", label: "Director Address", name: "directorAddress", type: "text", width: "full" },
       { id: "bf36", label: "Director Email", name: "directorEmail", type: "email", width: "half", required: true },
       { id: "bf37", label: "Director Phone", name: "directorPhone", type: "text", width: "half", required: true, numericOnly: true },
@@ -513,8 +517,8 @@ export const BUSINESS_STEPS: FormStep[] = [
       { id: "bf39", label: "UBO Last Name", name: "beneficiaryLastName", type: "text", width: "half", required: true },
       { id: "bf41", label: "UBO Nationality", name: "beneficiaryNationality", type: "text", width: "half", required: true },
       { id: "bf42", label: "UBO Passport No.", name: "beneficiaryPassport", type: "text", width: "half", required: true },
-      { id: "bf42_i", label: "Passport Issue Date", name: "beneficiaryPassportIssue", type: "date", width: "half", required: true, validation: { notFutureDates: true } },
-      { id: "bf42_e", label: "Passport Expiration Date", name: "beneficiaryPassportExpiry", type: "date", width: "half", required: true, validation: { notExpiredDates: true } },
+      { id: "bf42_i", label: "Passport Issue Date", name: "beneficiaryPassportIssue", type: "date", width: "half", required: true, validation: { notFutureDates: true, compareField: { fieldName: "beneficiaryPassportExpiry", operator: "before" } } },
+      { id: "bf42_e", label: "Passport Expiration Date", name: "beneficiaryPassportExpiry", type: "date", width: "half", required: true },
       { id: "bf43", label: "UBO Address", name: "beneficiaryAddress", type: "text", width: "full" },
       { id: "bf43_p", label: "Phone No.", name: "beneficiaryPhone", type: "text", width: "half", required: true, numericOnly: true },
       { id: "bf43_e", label: "Email Address", name: "beneficiaryEmail", type: "email", width: "half", required: true },
@@ -527,14 +531,14 @@ export const BUSINESS_STEPS: FormStep[] = [
     description: "Initial corporate funding origin and primary account preferences.",
     fields: [
       { id: "bf46_a", label: "Originating Bank Address", name: "fundingBankAddr", type: "text", width: "full" },
-      { id: "bf44", label: "Value of Initial Funding", name: "fundingValue", type: "text", width: "half" },
+      { id: "bf44", label: "Value of Initial Funding", name: "fundingValue", type: "text", width: "half", numericOnly: true },
       { id: "bf45", label: "Funding Currency", name: "fundingCurrency", type: "text", width: "half" },
       { id: "bf46", label: "Originating Bank Name", name: "fundingBank", type: "text", width: "half" },
       { id: "bf46_n", label: "Account Name (at originating bank)", name: "fundingAccName", type: "text", width: "half" },
       { id: "bf46_no", label: "Account Number", name: "fundingAccNo", type: "text", width: "half" },
       { id: "bf46_s", label: "Signatory", name: "fundingSignatory", type: "text", width: "half" },
       { id: "bf50", label: "How were funds generated?", name: "wealthSource", type: "textarea", width: "full", required: true },
-      { id: "bf47", label: "Account Currency (Primary Account)", name: "accCurrency", type: "text", width: "half", required: true },
+      { id: "bf47", label: "Account Currency (Primary Account)", name: "accCurrency", type: "select", options: ["EUR", "USD"], width: "half", required: true },
       { id: "bf48", label: "Account Name Reference (Optional)", name: "accRef", type: "text", width: "half" },
       { id: "bf49", label: "Recommended By (Referral)", name: "referral", type: "text", width: "half" },
     ]

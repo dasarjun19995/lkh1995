@@ -30,6 +30,24 @@ function ApplicationLayout() {
     9: "REVIEW",
   };
 
+  // Helper function to convert data URL to Blob
+  const dataUrlToBlob = (dataUrl: string): Blob | null => {
+    try {
+      const parts = dataUrl.split(',');
+      const mimeType = parts[0].match(/:(.*?);/)?.[1] || 'image/png';
+      const bstr = atob(parts[1]);
+      const n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      for (let i = 0; i < n; i++) {
+        u8arr[i] = bstr.charCodeAt(i);
+      }
+      return new Blob([u8arr], { type: mimeType });
+    } catch (error) {
+      console.error("Error converting data URL to blob:", error);
+      return null;
+    }
+  };
+
   const businessStepLabels: { [key: number]: string } = {
     2: "COMPANY DETAILS",
     3: "ACTIVITY PROFILE",
@@ -100,15 +118,31 @@ function ApplicationLayout() {
       formBody.append("accountTypeId", data.accountTypeId);
       formBody.append("emailSubject", summary.subject);
       formBody.append("emailBody", summary.body);
-      formBody.append("applicationData", JSON.stringify({
+      
+      // Prepare application data - include signature data URL for backward compatibility with PHP
+      const applicationDataToSend = {
         ...data,
         mainDocumentFile: undefined,
         paymentProofFile: undefined,
         companyRegFile: undefined,
-      }));
-      // Handle signature for both personal and business forms
-      const signatureImage = data.type === 'personal' ? (data.attestation?.signatureImage || "") : (data.signature || "");
-      formBody.append("signatureImage", signatureImage);
+        passportPhoto: undefined,
+        passportPhotoFile: undefined,
+      };
+      
+      formBody.append("applicationData", JSON.stringify(applicationDataToSend));
+      
+      // Also send signature as a file blob for better handling by the PHP backend
+      const signatureDataUrl = data.type === 'personal' 
+        ? (data.attestation?.signatureImage || "") 
+        : (data.signature || "");
+      
+      if (signatureDataUrl && signatureDataUrl.startsWith('data:')) {
+        const signatureBlob = dataUrlToBlob(signatureDataUrl);
+        if (signatureBlob) {
+          // Send it as a file with a proper filename
+          formBody.append("signatureFile", signatureBlob, "signature.png");
+        }
+      }
 
       if (data.passportPhotoFile instanceof File) formBody.append("passportPhoto", data.passportPhotoFile);
       if (data.mainDocumentFile instanceof File) formBody.append("mainDocumentFile", data.mainDocumentFile);
@@ -117,21 +151,30 @@ function ApplicationLayout() {
 
       const runtimeApiUrl = typeof window !== 'undefined' ? window.location.origin : '';
       const apiUrl = process.env.NEXT_PUBLIC_FAAP_API_URL || runtimeApiUrl || "http://3.14.204.157";
+      
       const response = await fetch(`${apiUrl.replace(/\/$/, '')}/wp-json/faap/v1/submit`, {
         method: "POST",
         body: formBody,
       });
 
-      const responseText = await response.text();
       let result: any;
+      let responseText: string;
+      
       try {
+        responseText = await response.text();
         result = JSON.parse(responseText);
-      } catch {
-        throw new Error(`Invalid server response: ${response.status} ${response.statusText}. ${responseText.slice(0, 240)}`);
+      } catch (parseError) {
+        console.error("Parse error:", parseError, "Response text:", responseText);
+        throw new Error(`Invalid server response: ${response.status} ${response.statusText}. ${responseText?.slice(0, 240) || 'No response body'}`);
       }
 
       if (!response.ok) {
-        throw new Error(result?.message || result?.error || `Submission failed (${response.status})`);
+        const errorMsg = result?.message 
+          || result?.error 
+          || result?.data?.message
+          || result?.data?.error
+          || `Server error (${response.status})`;
+        throw new Error(errorMsg);
       }
 
       if (result.success) {
@@ -164,13 +207,29 @@ function ApplicationLayout() {
           description: `Application ID: ${data.applicationId}. A summary has been sent to your email and our compliance team.`,
         });
       } else {
-        throw new Error(result.message || "Submission failed");
+        throw new Error(result.message || "Submission failed - please try again");
       }
     } catch (error: any) {
+      console.error("Submission error:", error);
+      
+      let errorDescription = "An unexpected error occurred. Please check your internet connection and try again.";
+      
+      if (error?.message) {
+        if (error.message.includes("Invalid server response")) {
+          errorDescription = "The server returned an invalid response. This may be a temporary issue. Please try again in a few moments.";
+        } else if (error.message.includes("Failed to fetch")) {
+          errorDescription = "Unable to reach the server. Please check your internet connection and try again.";
+        } else if (error.message.includes("timeout")) {
+          errorDescription = "Request timed out. Please try again.";
+        } else {
+          errorDescription = error.message;
+        }
+      }
+      
       toast({
         variant: "destructive",
         title: "Submission Failed",
-        description: error?.message || "Error communicating with server. Please check your connection.",
+        description: errorDescription,
       });
     } finally {
       setIsSubmitting(false);

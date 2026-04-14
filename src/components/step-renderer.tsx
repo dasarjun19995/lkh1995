@@ -452,19 +452,61 @@ const isValidEmail = (email: string): boolean => {
   return emailRegex.test(email);
 };
 
-const getDateValidationError = (field: any, value: string): string => {
+const calculateAge = (birthDate: string): number => {
+  const today = new Date();
+  const birth = new Date(birthDate);
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  return age;
+};
+
+const getDateValidationError = (field: any, value: string, allData: any): string => {
   if (!value) return "";
   
   const selectedDate = new Date(value);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  selectedDate.setHours(0, 0, 0, 0);
   
+  // Check for future dates
   if (field.validation?.notFutureDates && selectedDate > today) {
+    if (field.name === "dob") {
+      return "Date of birth cannot be in the future";
+    } else if (field.name === "incorporationDate") {
+      return "Date of incorporation cannot be in the future";
+    }
     return "Date cannot be in the future";
   }
   
-  if (field.validation?.notExpiredDates && selectedDate < today) {
-    return "Passport has expired";
+  // Check minimum age requirement
+  if (field.minAge && field.name === "dob") {
+    const age = calculateAge(value);
+    if (age < field.minAge) {
+      return `Applicant must be at least ${field.minAge} years old`;
+    }
+  }
+  
+  // Check if issue date is before expiry date
+  if (field.validation?.compareField) {
+    const compareFieldName = field.validation.compareField.fieldName;
+    const compareValue = allData[compareFieldName];
+    const operator = field.validation.compareField.operator;
+    
+    if (compareValue) {
+      const compareDate = new Date(compareValue);
+      compareDate.setHours(0, 0, 0, 0);
+      
+      if (operator === "before" && selectedDate >= compareDate) {
+        return "Issue date must be before expiration date";
+      }
+      if (operator === "after" && selectedDate <= compareDate) {
+        return "Expiration date must be after issue date";
+      }
+    }
   }
   
   return "";
@@ -486,13 +528,21 @@ const getFieldError = (field: any, value: string, allData: any): string => {
   if (field.validation?.matchField) {
     const matchValue = allData[field.validation.matchField];
     if (value && matchValue && value !== matchValue) {
-      return `Email addresses do not match`;
+      return `Emails do not match`;
     }
   }
   
   // Date validation
   if (field.type === "date") {
-    return getDateValidationError(field, value);
+    return getDateValidationError(field, value, allData);
+  }
+  
+  // Numeric-only validation for text fields
+  if (field.numericOnly && field.type === "text") {
+    const numericPattern = /^[0-9+\-().\s]*$/;
+    if (!numericPattern.test(value)) {
+      return "Only numeric characters are allowed";
+    }
   }
   
   return "";
@@ -512,7 +562,21 @@ export function StepRenderer() {
         ctx.lineCap = "round";
       }
     }
-  }, [currentStep]);
+    
+    // Auto-populate signature date for both personal and business forms
+    if (currentStep === 9) {
+      const today = new Date().toISOString().split('T')[0];
+      if (data.type === 'personal') {
+        if (!data.attestation?.signatureDate) {
+          updateData({ attestation: { ...data.attestation, signatureDate: today } });
+        }
+      } else {
+        if (!data.date) {
+          updateData({ date: today });
+        }
+      }
+    }
+  }, [currentStep, data.type]);
 
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
     if (!canvasRef.current) return;
@@ -864,7 +928,10 @@ export function StepRenderer() {
                 type="date"
                 value={data.attestation?.signatureDate || ''}
                 onChange={(e) => updateData({ attestation: { ...data.attestation, signatureDate: e.target.value } })}
-                className="h-10"
+                disabled={true}
+                readOnly={true}
+                className="h-10 bg-slate-100 cursor-not-allowed"
+                title="Signature date is automatically set to the current date"
                 required
               />
             </div>
@@ -902,6 +969,19 @@ export function StepRenderer() {
                   />
                   <p className="text-xs text-slate-400 mt-2">Supported formats: JPG, PNG, GIF, WebP</p>
                 </div>
+                
+                {data.attestation?.signatureImage && (
+                  <div className="border-2 border-green-200 rounded-lg p-4 bg-green-50">
+                    <p className="text-xs text-green-700 font-semibold mb-2">✓ Signature Captured</p>
+                    <div className="relative w-full h-[100px] border border-green-300 rounded-sm bg-white overflow-auto">
+                      <img 
+                        src={data.attestation.signatureImage} 
+                        alt="Signature preview" 
+                        className="h-full object-contain"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -965,8 +1045,11 @@ export function StepRenderer() {
               <Input
                 type="date"
                 value={data.date || ''}
+                disabled={true}
+                readOnly={true}
                 onChange={(e) => updateData({ date: e.target.value })}
-                className="h-10"
+                className="h-10 bg-slate-100 cursor-not-allowed"
+                title="Signature date is automatically set to the current date"
                 required
               />
               <Input
@@ -1011,6 +1094,19 @@ export function StepRenderer() {
                   />
                   <p className="text-xs text-slate-400 mt-2">Supported formats: JPG, PNG, GIF, WebP</p>
                 </div>
+                
+                {data.signature && (
+                  <div className="border-2 border-green-200 rounded-lg p-4 bg-green-50">
+                    <p className="text-xs text-green-700 font-semibold mb-2">✓ Signature Captured</p>
+                    <div className="relative w-full h-[100px] border border-green-300 rounded-sm bg-white overflow-auto">
+                      <img 
+                        src={data.signature} 
+                        alt="Signature preview" 
+                        className="h-full object-contain"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1032,7 +1128,8 @@ export function StepRenderer() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {activeStepData.fields.map((field: any) => {
-          const fieldError = getFieldError(field, data[field.name] || "", data);
+          const fieldValue = data[field.name] || "";
+          const fieldError = getFieldError(field, fieldValue, data);
           return (
           <div key={field.id} className={cn("space-y-2", field.width === 'half' ? '' : 'md:col-span-2')}>
             <Label htmlFor={field.name} className="text-sm font-bold uppercase tracking-wider flex items-center gap-2">
@@ -1044,7 +1141,7 @@ export function StepRenderer() {
                 <Input
                   id={field.name}
                   type="text"
-                  value={data[field.name] || ''}
+                  value={fieldValue}
                   onChange={(e) => {
                     let value = e.target.value;
                     // Apply numeric-only filtering if specified
@@ -1056,6 +1153,7 @@ export function StepRenderer() {
                   className={cn("py-6 border-2 focus-visible:ring-accent", fieldError && "border-red-500")}
                   required={field.required}
                   placeholder={field.placeholder}
+                  disabled={field.readOnly}
                 />
                 {fieldError && <p className="text-red-500 text-xs">{fieldError}</p>}
               </div>
@@ -1065,7 +1163,7 @@ export function StepRenderer() {
                 <Input
                   id={field.name}
                   type="email"
-                  value={data[field.name] || ''}
+                  value={fieldValue}
                   onChange={(e) => updateData({ [field.name]: e.target.value })}
                   className={cn("py-6 border-2 focus-visible:ring-accent", fieldError && "border-red-500")}
                   required={field.required}
@@ -1079,7 +1177,7 @@ export function StepRenderer() {
                 <Input
                   id={field.name}
                   type="number"
-                  value={data[field.name] || ''}
+                  value={fieldValue}
                   onChange={(e) => updateData({ [field.name]: e.target.value })}
                   className={cn("py-6 border-2 focus-visible:ring-accent", fieldError && "border-red-500")}
                   required={field.required}
@@ -1093,36 +1191,44 @@ export function StepRenderer() {
                 <Input
                   id={field.name}
                   type="date"
-                  value={data[field.name] || ''}
+                  value={fieldValue}
+                  onChange={(e) => updateData({ [field.name]: e.target.value })}
+                  disabled={field.readOnly}
+                  className={cn("py-6 border-2 focus-visible:ring-accent", fieldError && "border-red-500", field.readOnly && "bg-slate-100 cursor-not-allowed")}
+                  required={field.required}
+                  title={field.readOnly ? "This field is automatically populated and cannot be edited" : ""}
+                />
+                {fieldError && <p className="text-red-500 text-xs">{fieldError}</p>}
+              </div>
+            )}
+            {field.type === 'select' && (
+              <div className="space-y-1">
+                <select
+                  id={field.name}
+                  value={fieldValue}
+                  onChange={(e) => updateData({ [field.name]: e.target.value })}
+                  className={cn("py-6 border-2 focus-visible:ring-accent w-full rounded-md px-3", fieldError && "border-red-500")}
+                  required={field.required}
+                >
+                  <option value="">Select an option...</option>
+                  {field.options?.map((option: any) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+                {fieldError && <p className="text-red-500 text-xs">{fieldError}</p>}
+              </div>
+            )}
+            {field.type === 'textarea' && (
+              <div className="space-y-1">
+                <Textarea
+                  id={field.name}
+                  value={fieldValue}
                   onChange={(e) => updateData({ [field.name]: e.target.value })}
                   className={cn("py-6 border-2 focus-visible:ring-accent", fieldError && "border-red-500")}
                   required={field.required}
                 />
                 {fieldError && <p className="text-red-500 text-xs">{fieldError}</p>}
               </div>
-            )}
-            {field.type === 'select' && (
-              <select
-                id={field.name}
-                value={data[field.name] || ''}
-                onChange={(e) => updateData({ [field.name]: e.target.value })}
-                className="py-6 border-2 focus-visible:ring-accent w-full"
-                required={field.required}
-              >
-                <option value="">Select...</option>
-                {field.options?.map((option: any) => (
-                  <option key={option} value={option}>{option}</option>
-                ))}
-              </select>
-            )}
-            {field.type === 'textarea' && (
-              <Textarea
-                id={field.name}
-                value={data[field.name] || ''}
-                onChange={(e) => updateData({ [field.name]: e.target.value })}
-                className="py-6 border-2 focus-visible:ring-accent"
-                required={field.required}
-              />
             )}
             {field.type === 'file' && (
               <div className="relative group">
@@ -1135,7 +1241,7 @@ export function StepRenderer() {
                 <div className="h-24 border-2 border-dashed rounded-sm flex flex-col items-center justify-center gap-2 bg-white group-hover:bg-slate-50 transition-all shadow-sm">
                   <Upload className="w-6 h-6 text-slate-400" />
                   <span className="text-[11px] font-normal text-slate-500">
-                    {data[field.name] ? `${data[field.name].name || 'File uploaded ✓'}` : "Click to select or drag and drop"}
+                    {fieldValue && (fieldValue as File).name ? `${(fieldValue as File).name}` : "Click to select or drag and drop"}
                   </span>
                 </div>
               </div>

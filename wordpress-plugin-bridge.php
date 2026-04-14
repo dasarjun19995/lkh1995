@@ -968,6 +968,19 @@ function faap_handle_submission($request) {
                 $params['companyRegFile'] = $saved;
             }
         }
+        // Handle signature file upload if present
+        if (!empty($_FILES['signatureFile'])) {
+            $saved = faap_save_uploaded_file($_FILES['signatureFile'], 'signature');
+            if ($saved) {
+                // Update the signature data with the file URL for PDF generation
+                if ($params['type'] === 'personal' && isset($params['attestation'])) {
+                    $params['attestation']['signatureImage'] = $saved;
+                } else {
+                    $params['signature'] = $saved;
+                }
+                error_log('FAAP: Signature file saved and updated in params: ' . $saved);
+            }
+        }
 
         $form_data_json = wp_json_encode($params);
         $inserted = $wpdb->insert($table_apps, [

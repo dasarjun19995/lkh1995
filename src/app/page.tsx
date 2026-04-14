@@ -149,9 +149,22 @@ function ApplicationLayout() {
       if (data.paymentProofFile instanceof File) formBody.append("paymentProofFile", data.paymentProofFile);
       if (data.companyRegFile instanceof File) formBody.append("companyRegFile", data.companyRegFile);
 
-      const runtimeApiUrl = typeof window !== 'undefined' ? window.location.origin : '';
-      const apiUrl = process.env.NEXT_PUBLIC_FAAP_API_URL || runtimeApiUrl || "http://3.14.204.157";
-      
+      const getApiUrl = () => {
+        const defaultApiUrl = "http://3.14.204.157";
+        const runtimeApiUrl = typeof window !== 'undefined' ? window.location.origin : '';
+        const envApiUrl = process.env.NEXT_PUBLIC_FAAP_API_URL?.replace(/\/$/, '');
+        const isLocalDevelopment = typeof window !== 'undefined' && (
+          window.location.hostname === 'localhost' ||
+          window.location.hostname === '127.0.0.1' ||
+          process.env.NODE_ENV === 'development'
+        );
+
+        if (envApiUrl) return envApiUrl;
+        if (isLocalDevelopment) return defaultApiUrl;
+        return runtimeApiUrl || defaultApiUrl;
+      };
+
+      const apiUrl = getApiUrl();
       const response = await fetch(`${apiUrl.replace(/\/$/, '')}/wp-json/faap/v1/submit`, {
         method: "POST",
         body: formBody,
@@ -165,7 +178,7 @@ function ApplicationLayout() {
         result = JSON.parse(responseText);
       } catch (parseError) {
         console.error("Parse error:", parseError, "Response text:", responseText);
-        throw new Error(`Invalid server response: ${response.status} ${response.statusText}. ${responseText?.slice(0, 240) || 'No response body'}`);
+        throw new Error(`Invalid JSON response from server (${response.status}): ${responseText?.slice(0, 240) || 'No response body'}`);
       }
 
       if (!response.ok) {

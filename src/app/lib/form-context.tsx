@@ -126,7 +126,8 @@ export function FormProvider({ children }: { children: ReactNode }) {
         const timeoutId = setTimeout(() => controller.abort(), 3000);
 
         const runtimeApiUrl = typeof window !== 'undefined' ? window.location.origin : '';
-        const apiUrl = process.env.NEXT_PUBLIC_FAAP_API_URL || runtimeApiUrl || "http://3.14.204.157";
+        const envApiUrl = process.env.NEXT_PUBLIC_FAAP_API_URL?.replace(/\/$/, '');
+        const apiUrl = envApiUrl || (isLocalDevelopment ? "http://3.14.204.157" : runtimeApiUrl || "http://3.14.204.157");
         const response = await fetch(`${apiUrl.replace(/\/$/, '')}/wp-json/faap/v1/form-config/${data.type}`, {
           signal: controller.signal,
           headers: { 'Accept': 'application/json' },

@@ -101,12 +101,12 @@ function faap_get_form_config($data) {
     $config = $wpdb->get_var($wpdb->prepare("SELECT config FROM $table_forms WHERE form_type = %s", $type));
 
     if (!$config) {
-        return rest_ensure_response(faap_get_default_form_steps());
+        return rest_ensure_response($type === 'business' ? faap_get_default_business_form_steps() : faap_get_default_form_steps());
     }
 
     $decoded = json_decode($config, true);
     if (json_last_error() !== JSON_ERROR_NONE || !is_array($decoded)) {
-        return rest_ensure_response(faap_get_default_form_steps());
+        return rest_ensure_response($type === 'business' ? faap_get_default_business_form_steps() : faap_get_default_form_steps());
     }
 
     return rest_ensure_response($decoded);
@@ -921,14 +921,14 @@ function faap_get_default_form_steps() {
                 ['id' => 'f2', 'label' => 'First Name', 'name' => 'firstName', 'type' => 'text', 'width' => 'half', 'required' => true],
                 ['id' => 'f3', 'label' => 'Last Name', 'name' => 'lastName', 'type' => 'text', 'width' => 'half', 'required' => true],
                 ['id' => 'f4', 'label' => 'Middle Name', 'name' => 'middleName', 'type' => 'text', 'width' => 'full', 'required' => false],
-                ['id' => 'f5', 'label' => 'Date of Birth (dd-mm-yyyy)', 'name' => 'dateOfBirth', 'type' => 'date', 'width' => 'half', 'required' => true],
-                ['id' => 'f6', 'label' => 'Place of Birth', 'name' => 'placeOfBirth', 'type' => 'text', 'width' => 'half', 'required' => true],
+                ['id' => 'f5', 'label' => 'Date of Birth (dd-mm-yyyy)', 'name' => 'dob', 'type' => 'date', 'width' => 'half', 'required' => true, 'minAge' => 18, 'validation' => ['notFutureDates' => true]],
+                ['id' => 'f6', 'label' => 'Place of Birth', 'name' => 'pob', 'type' => 'text', 'width' => 'half', 'required' => true],
                 ['id' => 'f7', 'label' => 'Nationality', 'name' => 'nationality', 'type' => 'text', 'width' => 'half', 'required' => true],
-                ['id' => 'f8', 'label' => 'Passport / ID Number', 'name' => 'passportIdNumber', 'type' => 'text', 'width' => 'half', 'required' => true],
-                ['id' => 'f9', 'label' => 'Passport Issue Date', 'name' => 'passportIssueDate', 'type' => 'date', 'width' => 'half', 'required' => true],
-                ['id' => 'f10', 'label' => 'Passport Expiry Date', 'name' => 'passportExpiryDate', 'type' => 'date', 'width' => 'half', 'required' => true],
-                ['id' => 'f11', 'label' => 'Country of Issue', 'name' => 'countryOfIssue', 'type' => 'text', 'width' => 'half', 'required' => true],
-                ['id' => 'f12', 'label' => 'Telephone / Fax Number', 'name' => 'telephoneFax', 'type' => 'text', 'width' => 'half', 'required' => true],
+                ['id' => 'f8', 'label' => 'Passport / ID Number', 'name' => 'passportNo', 'type' => 'text', 'width' => 'half', 'required' => true, 'numericOnly' => true],
+                ['id' => 'f9', 'label' => 'Passport Issue Date', 'name' => 'passportIssue', 'type' => 'date', 'width' => 'half', 'required' => true, 'validation' => ['notFutureDates' => true, 'compareField' => ['fieldName' => 'passportExpiry', 'operator' => 'before']]],
+                ['id' => 'f10', 'label' => 'Passport Expiry Date', 'name' => 'passportExpiry', 'type' => 'date', 'width' => 'half', 'required' => true, 'validation' => ['notExpiredDates' => true]],
+                ['id' => 'f11', 'label' => 'Country of Issue', 'name' => 'passportCountry', 'type' => 'text', 'width' => 'half', 'required' => true],
+                ['id' => 'f12', 'label' => 'Telephone / Fax Number', 'name' => 'phone', 'type' => 'text', 'width' => 'half', 'required' => true, 'numericOnly' => true],
             ],
         ],
         [
@@ -942,8 +942,8 @@ function faap_get_default_form_steps() {
                 ['id' => 'f15', 'label' => 'City / State / Zip Code', 'name' => 'cityStateZip', 'type' => 'text', 'width' => 'full', 'required' => true],
                 ['id' => 'f16', 'label' => 'Country', 'name' => 'country', 'type' => 'text', 'width' => 'full', 'required' => true],
                 ['id' => 'f17', 'label' => 'Email Address', 'name' => 'email', 'type' => 'email', 'width' => 'half', 'required' => true],
-                ['id' => 'f18', 'label' => 'Confirm Email', 'name' => 'emailConfirm', 'type' => 'email', 'width' => 'half', 'required' => true],
-                ['id' => 'f19', 'label' => 'Mobile Number', 'name' => 'mobileNumber', 'type' => 'text', 'width' => 'half', 'required' => true],
+                ['id' => 'f18', 'label' => 'Confirm Email', 'name' => 'emailConfirm', 'type' => 'email', 'width' => 'half', 'required' => true, 'validation' => ['matchField' => 'email']],
+                ['id' => 'f19', 'label' => 'Mobile Number', 'name' => 'mobile', 'type' => 'text', 'width' => 'half', 'required' => true, 'numericOnly' => true],
             ],
         ],
         [
@@ -954,10 +954,10 @@ function faap_get_default_form_steps() {
             'fields' => [
                 ['id' => 'f20', 'label' => 'Main countries to send transfers', 'name' => 'sendCountries', 'type' => 'textarea', 'width' => 'full', 'required' => true],
                 ['id' => 'f21', 'label' => 'Main countries to receive transfers', 'name' => 'receiveCountries', 'type' => 'textarea', 'width' => 'full', 'required' => true],
-                ['id' => 'f22', 'label' => 'Estimated outgoing transfers per month', 'name' => 'outgoingTransfers', 'type' => 'number', 'width' => 'half', 'required' => true],
-                ['id' => 'f23', 'label' => 'Estimated incoming transfers per month', 'name' => 'incomingTransfers', 'type' => 'number', 'width' => 'half', 'required' => true],
-                ['id' => 'f24', 'label' => 'Average transfer value', 'name' => 'averageTransfer', 'type' => 'text', 'width' => 'half', 'required' => true],
-                ['id' => 'f25', 'label' => 'Maximum transfer value', 'name' => 'maxTransfer', 'type' => 'text', 'width' => 'half', 'required' => true],
+                ['id' => 'f22', 'label' => 'Estimated outgoing transfers per month', 'name' => 'outgoingCount', 'type' => 'number', 'width' => 'half', 'required' => true],
+                ['id' => 'f23', 'label' => 'Estimated incoming transfers per month', 'name' => 'incomingCount', 'type' => 'number', 'width' => 'half', 'required' => true],
+                ['id' => 'f24', 'label' => 'Average transfer value', 'name' => 'avgValue', 'type' => 'text', 'width' => 'half', 'required' => true, 'numericOnly' => true],
+                ['id' => 'f25', 'label' => 'Maximum transfer value', 'name' => 'maxValue', 'type' => 'text', 'width' => 'half', 'required' => true, 'numericOnly' => true],
                 ['id' => 'f26', 'label' => 'Initial funding currency', 'name' => 'fundingCurrency', 'type' => 'select', 'width' => 'half', 'required' => true, 'options' => ['EUR', 'USD']],
             ],
         ],
@@ -967,7 +967,7 @@ function faap_get_default_form_steps() {
             'title' => 'Wealth (Source of Funds)',
             'description' => 'Source of funds information.',
             'fields' => [
-                ['id' => 'f27', 'label' => 'Value of Initial Funding', 'name' => 'initialFundingValue', 'type' => 'text', 'width' => 'full', 'required' => true],
+                ['id' => 'f27', 'label' => 'Value of Initial Funding', 'name' => 'fundingValue', 'type' => 'text', 'width' => 'full', 'required' => true, 'numericOnly' => true],
                 ['id' => 'f28', 'label' => 'Originating Bank Name', 'name' => 'originatingBankName', 'type' => 'text', 'width' => 'full', 'required' => true],
                 ['id' => 'f29', 'label' => 'Bank Address', 'name' => 'originatingBankAddress', 'type' => 'textarea', 'width' => 'full', 'required' => true],
                 ['id' => 'f30', 'label' => 'Account Name & Number', 'name' => 'originatingAccount', 'type' => 'text', 'width' => 'full', 'required' => true],
@@ -981,7 +981,7 @@ function faap_get_default_form_steps() {
             'title' => 'Banking Details',
             'description' => 'Account banking details.',
             'fields' => [
-                ['id' => 'f33', 'label' => 'Account Currency', 'name' => 'accountCurrency', 'type' => 'select', 'width' => 'half', 'required' => true, 'options' => ['EUR', 'USD']],
+                ['id' => 'f33', 'label' => 'Account Currency', 'name' => 'accCurrency', 'type' => 'select', 'width' => 'half', 'required' => true, 'options' => ['EUR', 'USD']],
                 ['id' => 'f34', 'label' => 'Optional account name (for your reference)', 'name' => 'optionalAccountName', 'type' => 'text', 'width' => 'half', 'required' => false],
             ],
         ],
@@ -995,7 +995,7 @@ function faap_get_default_form_steps() {
                 ['id' => 'f36', 'label' => 'Bank Address', 'name' => 'feeBankAddress', 'type' => 'textarea', 'width' => 'full', 'required' => true],
                 ['id' => 'f37', 'label' => 'SWIFT Code', 'name' => 'feeSwiftCode', 'type' => 'text', 'width' => 'half', 'required' => true],
                 ['id' => 'f38', 'label' => 'Account Holder Name', 'name' => 'feeAccountHolder', 'type' => 'text', 'width' => 'half', 'required' => true],
-                ['id' => 'f39', 'label' => 'Account Number', 'name' => 'feeAccountNumber', 'type' => 'text', 'width' => 'half', 'required' => true],
+                ['id' => 'f39', 'label' => 'Account Number', 'name' => 'feeAccountNumber', 'type' => 'text', 'width' => 'half', 'required' => true, 'numericOnly' => true],
                 ['id' => 'f40', 'label' => 'Account Signatory', 'name' => 'feeAccountSignatory', 'type' => 'text', 'width' => 'half', 'required' => true],
                 ['id' => 'f41', 'label' => 'Origin of Deposit Funds', 'name' => 'depositOrigin', 'type' => 'textarea', 'width' => 'full', 'required' => true],
             ],
@@ -1012,6 +1012,159 @@ function faap_get_default_form_steps() {
                 ['id' => 'f45', 'label' => 'Full Name / Signature', 'name' => 'fullNameSignature', 'type' => 'text', 'width' => 'full', 'required' => true],
                 ['id' => 'f46', 'label' => 'Passport or ID Number', 'name' => 'signatureIdNumber', 'type' => 'text', 'width' => 'half', 'required' => true],
                 ['id' => 'f47', 'label' => 'Signature Date', 'name' => 'signatureDate', 'type' => 'date', 'width' => 'half', 'required' => true],
+            ],
+        ],
+    ];
+}
+
+function faap_get_default_business_form_steps() {
+    return [
+        [
+            'id' => 'step-1',
+            'order' => 1,
+            'title' => 'Account Type (Business Account)',
+            'description' => 'Select the account type.',
+            'fields' => [
+                ['id' => 'bf1', 'label' => 'Account Type', 'name' => 'accountType', 'type' => 'select', 'width' => 'full', 'required' => true, 'options' => ['Savings Account', 'Custody Account', 'Numbered Account', 'Cryptocurrency Account']],
+            ],
+        ],
+        [
+            'id' => 'b2',
+            'order' => 2,
+            'title' => 'Company Details',
+            'description' => 'Your company details.',
+            'fields' => [
+                ['id' => 'bf2', 'label' => 'Company name', 'name' => 'entityName', 'type' => 'text', 'width' => 'full', 'required' => true],
+                ['id' => 'bf3', 'label' => 'Registered address', 'name' => 'address', 'type' => 'text', 'width' => 'full', 'required' => true],
+                ['id' => 'bf4', 'label' => 'Registered address line 2', 'name' => 'address2', 'type' => 'text', 'width' => 'full'],
+                ['id' => 'bf5', 'label' => 'City', 'name' => 'city', 'type' => 'text', 'width' => 'half'],
+                ['id' => 'bf6', 'label' => 'State', 'name' => 'state', 'type' => 'text', 'width' => 'half'],
+                ['id' => 'bf7', 'label' => 'Zip code', 'name' => 'zip', 'type' => 'text', 'width' => 'half'],
+                ['id' => 'bf8', 'label' => 'Country', 'name' => 'country', 'type' => 'text', 'width' => 'half', 'required' => true],
+                ['id' => 'bf9', 'label' => 'Telephone No.', 'name' => 'phone', 'type' => 'text', 'width' => 'half', 'required' => true, 'numericOnly' => true],
+                ['id' => 'bf10', 'label' => 'Company registration No.', 'name' => 'regNumber', 'type' => 'text', 'width' => 'half', 'numericOnly' => true],
+                ['id' => 'bf11', 'label' => 'Date of incorporation', 'name' => 'incorporationDate', 'type' => 'date', 'width' => 'half', 'required' => true, 'validation' => ['notFutureDates' => true]],
+                ['id' => 'bf12', 'label' => 'Tax ID/VAT Number', 'name' => 'taxId', 'type' => 'text', 'width' => 'half', 'numericOnly' => true],
+                ['id' => 'bf13', 'label' => 'Company Website', 'name' => 'website', 'type' => 'text', 'width' => 'half'],
+                ['id' => 'bf14', 'label' => 'Company Email', 'name' => 'email', 'type' => 'email', 'width' => 'half', 'required' => true],
+                ['id' => 'bf15', 'label' => 'Brief Description of Primary Company Activity', 'name' => 'activityDescription', 'type' => 'textarea', 'width' => 'full', 'required' => true],
+            ],
+        ],
+        [
+            'id' => 'b3',
+            'order' => 3,
+            'title' => 'Activity Profile',
+            'description' => 'Expected transaction profile.',
+            'fields' => [
+                ['id' => 'bf16', 'label' => 'Main countries (To)', 'name' => 'countriesTo', 'type' => 'text', 'width' => 'half', 'required' => true],
+                ['id' => 'bf17', 'label' => 'Main countries (From)', 'name' => 'countriesFrom', 'type' => 'text', 'width' => 'half', 'required' => true],
+                ['id' => 'bf18', 'label' => 'Estimated Outgoing Transfers / Month', 'name' => 'outgoingCount', 'type' => 'number', 'width' => 'half'],
+                ['id' => 'bf19', 'label' => 'Estimated Incoming Transfers / Month', 'name' => 'incomingCount', 'type' => 'number', 'width' => 'half'],
+                ['id' => 'bf20', 'label' => 'Average Value for each Transfer', 'name' => 'avgValue', 'type' => 'text', 'width' => 'half', 'numericOnly' => true],
+                ['id' => 'bf21', 'label' => 'Maximum Value for each Transfer', 'name' => 'maxValue', 'type' => 'text', 'width' => 'half', 'numericOnly' => true],
+            ],
+        ],
+        [
+            'id' => 'b4',
+            'order' => 4,
+            'title' => 'Authorized Signatory',
+            'description' => 'Details of the authorized signatory.',
+            'fields' => [
+                ['id' => 'bf22', 'label' => 'First Name', 'name' => 'signatoryFirstName', 'type' => 'text', 'width' => 'half', 'required' => true],
+                ['id' => 'bf23', 'label' => 'Middle Name', 'name' => 'signatoryMiddleName', 'type' => 'text', 'width' => 'half'],
+                ['id' => 'bf24', 'label' => 'Last Name', 'name' => 'signatoryLastName', 'type' => 'text', 'width' => 'half', 'required' => true],
+                ['id' => 'bf25', 'label' => 'Address', 'name' => 'signatoryAddress', 'type' => 'text', 'width' => 'full', 'required' => true],
+                ['id' => 'bf26', 'label' => 'Address Line 2', 'name' => 'signatoryAddress2', 'type' => 'text', 'width' => 'full'],
+                ['id' => 'bf27', 'label' => 'City', 'name' => 'signatoryCity', 'type' => 'text', 'width' => 'half'],
+                ['id' => 'bf28', 'label' => 'State', 'name' => 'signatoryState', 'type' => 'text', 'width' => 'half'],
+                ['id' => 'bf29', 'label' => 'Zip Code', 'name' => 'signatoryZip', 'type' => 'text', 'width' => 'half'],
+                ['id' => 'bf30', 'label' => 'Country', 'name' => 'signatoryCountry', 'type' => 'text', 'width' => 'half', 'required' => true],
+                ['id' => 'bf31', 'label' => 'Nationality', 'name' => 'signatoryNationality', 'type' => 'text', 'width' => 'half', 'required' => true],
+                ['id' => 'bf32', 'label' => 'Passport/ID No.', 'name' => 'signatoryPassport', 'type' => 'text', 'width' => 'half', 'required' => true, 'numericOnly' => true],
+                ['id' => 'bf33', 'label' => 'Passport Issue Date', 'name' => 'signatoryPassportIssue', 'type' => 'date', 'width' => 'half', 'required' => true, 'validation' => ['notFutureDates' => true, 'compareField' => ['fieldName' => 'signatoryPassportExpiry', 'operator' => 'before']]],
+                ['id' => 'bf34', 'label' => 'Passport Expiration Date', 'name' => 'signatoryPassportExpiry', 'type' => 'date', 'width' => 'half', 'required' => true, 'validation' => ['notExpiredDates' => true]],
+                ['id' => 'bf35', 'label' => 'Signatory Email', 'name' => 'signatoryEmail', 'type' => 'email', 'width' => 'half', 'required' => true],
+                ['id' => 'bf36', 'label' => 'Confirm Signatory Email', 'name' => 'signatoryEmailConfirm', 'type' => 'email', 'width' => 'half', 'required' => true, 'validation' => ['matchField' => 'signatoryEmail']],
+                ['id' => 'bf37', 'label' => 'Mobile No.', 'name' => 'signatoryPhone', 'type' => 'text', 'width' => 'half', 'required' => true, 'numericOnly' => true],
+                ['id' => 'bf38', 'label' => 'Fax No.', 'name' => 'signatoryFax', 'type' => 'text', 'width' => 'half', 'numericOnly' => true],
+            ],
+        ],
+        [
+            'id' => 'b5',
+            'order' => 5,
+            'title' => 'Directors',
+            'description' => 'Company director information.',
+            'fields' => [
+                ['id' => 'bf39', 'label' => 'Director First Name', 'name' => 'directorFirstName', 'type' => 'text', 'width' => 'half', 'required' => true],
+                ['id' => 'bf40', 'label' => 'Director Middle Name', 'name' => 'directorMiddleName', 'type' => 'text', 'width' => 'half'],
+                ['id' => 'bf41', 'label' => 'Director Last Name', 'name' => 'directorLastName', 'type' => 'text', 'width' => 'half', 'required' => true],
+                ['id' => 'bf42', 'label' => 'Director Nationality', 'name' => 'directorNationality', 'type' => 'text', 'width' => 'half', 'required' => true],
+                ['id' => 'bf43', 'label' => 'Passport/ID No.', 'name' => 'directorPassport', 'type' => 'text', 'width' => 'half', 'required' => true, 'numericOnly' => true],
+                ['id' => 'bf44', 'label' => 'Passport Issue Date', 'name' => 'directorPassportIssue', 'type' => 'date', 'width' => 'half', 'required' => true, 'validation' => ['notFutureDates' => true, 'compareField' => ['fieldName' => 'directorPassportExpiry', 'operator' => 'before']]],
+                ['id' => 'bf45', 'label' => 'Passport Expiration Date', 'name' => 'directorPassportExpiry', 'type' => 'date', 'width' => 'half', 'required' => true, 'validation' => ['notExpiredDates' => true]],
+                ['id' => 'bf46', 'label' => 'Director Address', 'name' => 'directorAddress', 'type' => 'text', 'width' => 'full'],
+                ['id' => 'bf47', 'label' => 'Director Email', 'name' => 'directorEmail', 'type' => 'email', 'width' => 'half', 'required' => true],
+                ['id' => 'bf48', 'label' => 'Director Phone', 'name' => 'directorPhone', 'type' => 'text', 'width' => 'half', 'required' => true, 'numericOnly' => true],
+            ],
+        ],
+        [
+            'id' => 'b6',
+            'order' => 6,
+            'title' => 'Beneficiaries',
+            'description' => 'Ultimate beneficiary information.',
+            'fields' => [
+                ['id' => 'bf49', 'label' => 'UBO Share (%)', 'name' => 'beneficiaryShare', 'type' => 'number', 'width' => 'half', 'required' => true],
+                ['id' => 'bf50', 'label' => 'UBO First Name', 'name' => 'beneficiaryFirstName', 'type' => 'text', 'width' => 'half', 'required' => true],
+                ['id' => 'bf51', 'label' => 'UBO Middle Name', 'name' => 'beneficiaryMiddleName', 'type' => 'text', 'width' => 'half'],
+                ['id' => 'bf52', 'label' => 'UBO Last Name', 'name' => 'beneficiaryLastName', 'type' => 'text', 'width' => 'half', 'required' => true],
+                ['id' => 'bf53', 'label' => 'UBO Nationality', 'name' => 'beneficiaryNationality', 'type' => 'text', 'width' => 'half', 'required' => true],
+                ['id' => 'bf54', 'label' => 'UBO Passport No.', 'name' => 'beneficiaryPassport', 'type' => 'text', 'width' => 'half', 'required' => true, 'numericOnly' => true],
+                ['id' => 'bf55', 'label' => 'Passport Issue Date', 'name' => 'beneficiaryPassportIssue', 'type' => 'date', 'width' => 'half', 'required' => true, 'validation' => ['notFutureDates' => true, 'compareField' => ['fieldName' => 'beneficiaryPassportExpiry', 'operator' => 'before']]],
+                ['id' => 'bf56', 'label' => 'Passport Expiration Date', 'name' => 'beneficiaryPassportExpiry', 'type' => 'date', 'width' => 'half', 'required' => true, 'validation' => ['notExpiredDates' => true]],
+                ['id' => 'bf57', 'label' => 'UBO Address', 'name' => 'beneficiaryAddress', 'type' => 'text', 'width' => 'full'],
+                ['id' => 'bf58', 'label' => 'Phone No.', 'name' => 'beneficiaryPhone', 'type' => 'text', 'width' => 'half', 'required' => true, 'numericOnly' => true],
+                ['id' => 'bf59', 'label' => 'Email Address', 'name' => 'beneficiaryEmail', 'type' => 'email', 'width' => 'half', 'required' => true],
+            ],
+        ],
+        [
+            'id' => 'b7',
+            'order' => 7,
+            'title' => 'Funding & Account Details',
+            'description' => 'Initial corporate funding and account preferences.',
+            'fields' => [
+                ['id' => 'bf60', 'label' => 'Originating Bank Address', 'name' => 'fundingBankAddr', 'type' => 'text', 'width' => 'full'],
+                ['id' => 'bf61', 'label' => 'Value of Initial Funding', 'name' => 'fundingValue', 'type' => 'text', 'width' => 'half', 'numericOnly' => true],
+                ['id' => 'bf62', 'label' => 'Funding Currency', 'name' => 'fundingCurrency', 'type' => 'text', 'width' => 'half'],
+                ['id' => 'bf63', 'label' => 'Originating Bank Name', 'name' => 'fundingBank', 'type' => 'text', 'width' => 'half'],
+                ['id' => 'bf64', 'label' => 'Account Name (at originating bank)', 'name' => 'fundingAccName', 'type' => 'text', 'width' => 'half'],
+                ['id' => 'bf65', 'label' => 'Account Number', 'name' => 'fundingAccNo', 'type' => 'text', 'width' => 'half', 'numericOnly' => true],
+                ['id' => 'bf66', 'label' => 'Signatory', 'name' => 'fundingSignatory', 'type' => 'text', 'width' => 'half'],
+                ['id' => 'bf67', 'label' => 'How were funds generated?', 'name' => 'wealthSource', 'type' => 'textarea', 'width' => 'full', 'required' => true],
+                ['id' => 'bf68', 'label' => 'Account Currency (Primary Account)', 'name' => 'accCurrency', 'type' => 'select', 'width' => 'half', 'required' => true, 'options' => ['EUR', 'USD']],
+                ['id' => 'bf69', 'label' => 'Account Name Reference (Optional)', 'name' => 'accRef', 'type' => 'text', 'width' => 'half'],
+                ['id' => 'bf70', 'label' => 'Recommended By (Referral)', 'name' => 'referral', 'type' => 'text', 'width' => 'half'],
+            ],
+        ],
+        [
+            'id' => 'b8',
+            'order' => 8,
+            'title' => 'Payment',
+            'description' => 'Upload required documents and payment proof.',
+            'fields' => [
+                ['id' => 'bf71', 'label' => 'Payment Proof', 'name' => 'paymentProof', 'type' => 'file', 'width' => 'full', 'required' => true],
+                ['id' => 'bf72', 'label' => 'Company Registration Certificate', 'name' => 'companyRegFile', 'type' => 'file', 'width' => 'full', 'required' => true],
+            ],
+        ],
+        [
+            'id' => 'b9',
+            'order' => 9,
+            'title' => 'Review & Attestation',
+            'description' => 'Review and confirm your application.',
+            'fields' => [
+                ['id' => 'bf73', 'label' => 'I Agree', 'name' => 'agree', 'type' => 'radio', 'width' => 'full', 'required' => true, 'options' => ['I Agree']],
+                ['id' => 'bf74', 'label' => 'Full name', 'name' => 'fullName', 'type' => 'text', 'width' => 'half', 'required' => true],
+                ['id' => 'bf75', 'label' => 'Date', 'name' => 'date', 'type' => 'date', 'width' => 'half', 'required' => true],
+                ['id' => 'bf76', 'label' => 'Signature', 'name' => 'signature', 'type' => 'text', 'width' => 'full', 'required' => true],
             ],
         ],
     ];
@@ -1253,7 +1406,7 @@ function faap_admin_manage_forms() {
     }
     $businessData = json_decode($business, true);
     if (json_last_error() !== JSON_ERROR_NONE || !is_array($businessData) || count($businessData) === 0) {
-        $businessData = faap_get_default_form_steps();
+        $businessData = faap_get_default_business_form_steps();
     }
 
     $personalJson = json_encode($personalData, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);

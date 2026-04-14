@@ -46,6 +46,61 @@ const defaultData: ApplicationData = {
   },
 };
 
+const isValidEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+const calculateAge = (birthDate: string): number => {
+  const today = new Date();
+  const birth = new Date(birthDate);
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  return age;
+};
+
+const normalizeFetchedSteps = (remoteSteps: any[], localSteps: any[]) => {
+  const localFieldMap = new Map<string, any>();
+  localSteps.forEach((step) => {
+    step.fields?.forEach((field: any) => {
+      if (field?.name) {
+        localFieldMap.set(field.name, field);
+      }
+    });
+  });
+
+  return remoteSteps.map((step) => ({
+    ...step,
+    title: step.title || localSteps.find((localStep) => localStep.id === step.id)?.title,
+    fields: Array.isArray(step.fields)
+      ? step.fields.map((field: any) => {
+          const localField = localFieldMap.get(field.name);
+          if (!localField) return field;
+
+          return {
+            ...field,
+            label: localField.label ?? field.label,
+            type: localField.type ?? field.type,
+            required: localField.required ?? field.required,
+            width: localField.width ?? field.width,
+            numericOnly: localField.numericOnly ?? field.numericOnly,
+            minAge: localField.minAge ?? field.minAge,
+            readOnly: localField.readOnly ?? field.readOnly,
+            autoPopulateCurrentDate: localField.autoPopulateCurrentDate ?? field.autoPopulateCurrentDate,
+            validation: {
+              ...field.validation,
+              ...localField.validation,
+            },
+            options: field.options?.length ? field.options : localField.options,
+          };
+        })
+      : step.fields,
+  }));
+};
+
 const FormContext = createContext<FormContextType | undefined>(undefined);
 
 export function FormProvider({ children }: { children: ReactNode }) {
@@ -60,6 +115,13 @@ export function FormProvider({ children }: { children: ReactNode }) {
       const defaultSteps = data.type === 'personal' ? PERSONAL_STEPS : BUSINESS_STEPS;
       
       try {
+        const isLocalDevelopment = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || process.env.NODE_ENV === 'development');
+        if (isLocalDevelopment) {
+          setSteps(defaultSteps);
+          setIsLoading(false);
+          return;
+        }
+
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 3000);
 
@@ -85,7 +147,7 @@ export function FormProvider({ children }: { children: ReactNode }) {
         }
 
         if (Array.isArray(config) && config.length > 0 && config.every(step => step.order && step.fields)) {
-          setSteps(config);
+          setSteps(normalizeFetchedSteps(config, defaultSteps));
         } else {
           setSteps(defaultSteps);
         }
@@ -162,36 +224,79 @@ export function FormProvider({ children }: { children: ReactNode }) {
     if (!stepConfig || !stepConfig.fields) {
       return true; // Allow if no fields defined
     }
-    
-    // Check all required fields in the step
-    for (const field of stepConfig.fields) {
-      if (field.required) {
-        const value = data[field.name];
-        
-        // Check if field is empty
-        if (value === undefined || value === null || value === '') {
+
+    const isValidFieldValue = (field: any, value: any): boolean => {
+      const trimmedValue = typeof value === 'string' ? value.trim() : value;
+      if (field.required && (trimmedValue === undefined || trimmedValue === null || trimmedValue === '')) {
+        return false;
+      }
+
+      if (!trimmedValue) {
+        return true;
+      }
+
+      if (field.type === 'email' && !isValidEmail(String(trimmedValue))) {
+        return false;
+      }
+
+      if (field.type === 'date') {
+        const selectedDate = new Date(String(trimmedValue));
+        if (isNaN(selectedDate.getTime())) {
           return false;
         }
-        
-        // Format validation based on field type
-        if (field.type === 'email') {
-          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-          if (!emailRegex.test(String(value))) {
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        selectedDate.setHours(0, 0, 0, 0);
+
+        if (field.validation?.notFutureDates && selectedDate > today) {
+          return false;
+        }
+
+        if (field.validation?.notExpiredDates && selectedDate < today) {
+          return false;
+        }
+
+        if (field.minAge && field.name === 'dob') {
+          if (calculateAge(String(trimmedValue)) < field.minAge) {
             return false;
           }
-        } else if (field.type === 'date') {
-          const date = new Date(value);
-          if (isNaN(date.getTime())) {
-            return false;
-          }
-        } else if (field.type === 'number') {
-          if (isNaN(Number(value))) {
-            return false;
+        }
+
+        if (field.validation?.compareField) {
+          const compareValue = data[field.validation.compareField.fieldName];
+          if (compareValue) {
+            const compareDate = new Date(String(compareValue));
+            compareDate.setHours(0, 0, 0, 0);
+            if (field.validation.compareField.operator === 'before' && selectedDate >= compareDate) {
+              return false;
+            }
+            if (field.validation.compareField.operator === 'after' && selectedDate <= compareDate) {
+              return false;
+            }
           }
         }
       }
-      
-      // Special validation for email confirmation
+
+      if (field.numericOnly && typeof trimmedValue === 'string') {
+        const numericPattern = /^[0-9+\-().\s]*$/;
+        if (!numericPattern.test(trimmedValue)) {
+          return false;
+        }
+      }
+
+      if (field.type === 'number' && trimmedValue !== '' && isNaN(Number(trimmedValue))) {
+        return false;
+      }
+
+      return true;
+    };
+
+    for (const field of stepConfig.fields) {
+      if (!isValidFieldValue(field, data[field.name])) {
+        return false;
+      }
+
       if (field.name === 'emailConfirm' && data.email !== data.emailConfirm) {
         return false;
       }
@@ -199,7 +304,7 @@ export function FormProvider({ children }: { children: ReactNode }) {
         return false;
       }
     }
-    
+
     return true;
   };
 

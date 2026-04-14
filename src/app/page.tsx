@@ -158,7 +158,7 @@ function ApplicationLayout() {
       });
 
       let result: any;
-      let responseText: string;
+      let responseText = "";
       
       try {
         responseText = await response.text();

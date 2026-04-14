@@ -703,6 +703,29 @@ export function StepRenderer() {
   // Step 1+: Form Steps (after account type is selected)
   const currentStepData = steps.find((step: any) => Number(step.order || step.id) === currentStep) || steps[currentStep - 1] || null;
   const activeStepData = currentStepData;
+  const today = new Date();
+  const todayDate = today.toISOString().split('T')[0];
+  const eighteenYearsAgo = new Date(today);
+  eighteenYearsAgo.setFullYear(eighteenYearsAgo.getFullYear() - 18);
+  const eighteenYearsAgoDate = eighteenYearsAgo.toISOString().split('T')[0];
+
+  const getDateLimits = (field: any) => {
+    const limits: { min?: string; max?: string } = {};
+
+    if (field.validation?.notFutureDates) {
+      if (field.name === 'dob') {
+        limits.max = eighteenYearsAgoDate;
+      } else {
+        limits.max = todayDate;
+      }
+    }
+
+    if (field.validation?.notExpiredDates) {
+      limits.min = todayDate;
+    }
+
+    return limits;
+  };
 
   // Step 8: Document Uploads
   if (currentStep === 8) {
@@ -1194,6 +1217,8 @@ export function StepRenderer() {
                   value={fieldValue}
                   onChange={(e) => updateData({ [field.name]: e.target.value })}
                   disabled={field.readOnly}
+                  max={getDateLimits(field).max}
+                  min={getDateLimits(field).min}
                   className={cn("py-6 border-2 focus-visible:ring-accent", fieldError && "border-red-500", field.readOnly && "bg-slate-100 cursor-not-allowed")}
                   required={field.required}
                   title={field.readOnly ? "This field is automatically populated and cannot be edited" : ""}
